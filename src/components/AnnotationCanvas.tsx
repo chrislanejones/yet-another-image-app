@@ -10,6 +10,7 @@ interface AnnotationCanvasProps {
   image: ImageData;
   tool: ToolType;
   settings: ToolSettings;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
 }
 
 export interface AnnotationCanvasRef {
@@ -21,14 +22,23 @@ export interface AnnotationCanvasRef {
 }
 
 export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvasProps>(
-  function AnnotationCanvas({ image, tool, settings }, ref) {
+  function AnnotationCanvas({ image, tool, settings, onHistoryChange }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastPoint, setLastPoint] = useState<Point | null>(null);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [previewCanvas, setPreviewCanvas] = useState<globalThis.ImageData | null>(null);
-  const [history, setHistory] = useState<ImageData[]>([]);
+  const [history, setHistory] = useState<globalThis.ImageData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+
+  // Use refs to always access latest values in callbacks
+  const historyRef = useRef(history);
+  const historyIndexRef = useRef(historyIndex);
+
+  useEffect(() => {
+    historyRef.current = history;
+    historyIndexRef.current = historyIndex;
+  }, [history, historyIndex]);
 
   const saveSnapshot = useCallback(() => {
     const canvas = canvasRef.current;
@@ -38,55 +48,64 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
     if (!ctx) return;
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const currentHistory = historyRef.current;
+    const currentIndex = historyIndexRef.current;
 
     // Remove any redo states when new action is taken
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(imageData as unknown as ImageData);
+    const newHistory = currentHistory.slice(0, currentIndex + 1);
+    newHistory.push(imageData);
 
     // Limit history to 50 states
     if (newHistory.length > 50) {
       newHistory.shift();
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-    } else {
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
     }
-  }, [history, historyIndex]);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  }, []);
 
   const undo = useCallback(() => {
-    if (historyIndex <= 0) return;
+    const currentIndex = historyIndexRef.current;
+    if (currentIndex <= 0) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const newIndex = historyIndex - 1;
-    const imageData = history[newIndex] as unknown as globalThis.ImageData;
+    const newIndex = currentIndex - 1;
+    const imageData = historyRef.current[newIndex];
     ctx.putImageData(imageData, 0, 0);
     setHistoryIndex(newIndex);
-  }, [history, historyIndex]);
+  }, []);
 
   const redo = useCallback(() => {
-    if (historyIndex >= history.length - 1) return;
+    const currentHistory = historyRef.current;
+    const currentIndex = historyIndexRef.current;
+    if (currentIndex >= currentHistory.length - 1) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const newIndex = historyIndex + 1;
-    const imageData = history[newIndex] as unknown as globalThis.ImageData;
+    const newIndex = currentIndex + 1;
+    const imageData = currentHistory[newIndex];
     ctx.putImageData(imageData, 0, 0);
     setHistoryIndex(newIndex);
-  }, [history, historyIndex]);
+  }, []);
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   useImperativeHandle(ref, () => ({
     undo,
     redo,
-    canUndo: historyIndex > 0,
-    canRedo: historyIndex < history.length - 1,
+    canUndo,
+    canRedo,
     getCanvas: () => canvasRef.current,
-  }), [undo, redo, historyIndex, history.length]);
+  }), [undo, redo, canUndo, canRedo]);
+
+  useEffect(() => {
+    onHistoryChange?.(canUndo, canRedo);
+  }, [canUndo, canRedo, onHistoryChange]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -102,7 +121,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
       ctx.drawImage(img, 0, 0);
       // Save initial state
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      setHistory([imageData as unknown as ImageData]);
+      setHistory([imageData]);
       setHistoryIndex(0);
     };
     img.src = image.url;
@@ -188,6 +207,8 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
   }, []);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Only handle left mouse button (button 0), ignore right-click for context menu
+    if (e.button !== 0) return;
     if (tool !== "brush" && tool !== "arrow") return;
 
     const canvas = canvasRef.current;
@@ -202,7 +223,6 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
       setStartPoint(point);
     }
 
-    saveSnapshot(); // Save state before drawing starts
     setIsDrawing(true);
     setLastPoint(point);
   };

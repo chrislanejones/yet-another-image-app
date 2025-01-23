@@ -12,12 +12,15 @@ import {
 import {
   X,
   Shrink,
+  Crop,
   Paintbrush,
   TypeIcon,
   ArrowUpRight,
   MoveHorizontal,
   Undo,
   Redo,
+  Sparkles,
+  Shapes,
 } from "@/components/icons";
 
 const user: User = {
@@ -27,16 +30,24 @@ const user: User = {
 };
 
 const tools = [
+  // Row 1
   {
     id: "compress" as const,
-    label: "Compress",
-    description: "Resize & optimize",
+    label: "Resize",
+    description: "Resize & optimize images",
     icon: Shrink,
     gradient: "from-orange-500 to-red-500",
   },
   {
+    id: "crop" as const,
+    label: "Crop",
+    description: "Crop & trim images",
+    icon: Crop,
+    gradient: "from-cyan-500 to-blue-500",
+  },
+  {
     id: "brush" as const,
-    label: "Brush",
+    label: "Paint",
     description: "Freehand drawing",
     icon: Paintbrush,
     gradient: "from-blue-500 to-indigo-500",
@@ -44,16 +55,31 @@ const tools = [
   {
     id: "text" as const,
     label: "Text",
-    description: "Add annotations",
+    description: "Add text annotations",
     icon: TypeIcon,
     gradient: "from-amber-400 to-orange-500",
   },
+  // Row 2
   {
     id: "arrow" as const,
-    label: "Arrow",
-    description: "Point & highlight",
+    label: "Arrows",
+    description: "Point & highlight areas",
     icon: ArrowUpRight,
     gradient: "from-emerald-500 to-teal-500",
+  },
+  {
+    id: "ai" as const,
+    label: "AI",
+    description: "AI-powered tools",
+    icon: Sparkles,
+    gradient: "from-violet-500 to-purple-600",
+  },
+  {
+    id: "shapes" as const,
+    label: "Shapes",
+    description: "Add geometric shapes",
+    icon: Shapes,
+    gradient: "from-pink-500 to-rose-500",
   },
 ];
 
@@ -103,7 +129,12 @@ export function ToolsSidebar({
       <div className="flex h-full flex-col text-theme-sidebar-foreground">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-theme-sidebar-border">
-          <h2 className="text-lg font-semibold">Annotation Tools</h2>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <span className="text-theme-chart4">
+              <Paintbrush className="h-4 w-4" />
+            </span>
+            Toolbar
+          </h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg transition-colors text-theme-muted-foreground"
@@ -113,8 +144,8 @@ export function ToolsSidebar({
         </div>
 
         {/* Tool Selector */}
-        <div className="p-3 border-b border-theme-sidebar-border">
-          <div className="flex gap-2 justify-center">
+        <div className="p-4 border-b border-theme-sidebar-border">
+          <div className="grid grid-cols-4 gap-3">
             {tools.map((tool) => {
               const isActive = activeTool === tool.id;
               return (
@@ -122,18 +153,18 @@ export function ToolsSidebar({
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => onToolChange(tool.id)}
-                      className={`relative p-1 rounded-lg transition-all ${
+                      className={`relative p-0.5 rounded-xl transition-all ${
                         isActive
-                          ? "ring-2 ring-theme-ring ring-offset-2 ring-offset-theme-sidebar"
+                          ? "ring-2 ring-theme-ring ring-offset-1 ring-offset-theme-sidebar"
                           : ""
                       }`}
                     >
                       <span
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${tool.gradient} shadow-lg transition-transform hover:scale-105 ${
-                          isActive ? "scale-110" : ""
+                        className={`flex h-12 w-full aspect-square items-center justify-center rounded-xl bg-linear-to-br ${tool.gradient} shadow-lg transition-transform hover:scale-105 ${
+                          isActive ? "scale-105" : ""
                         }`}
                       >
-                        <tool.icon className="h-5 w-5 text-white" />
+                        <tool.icon className="h-6 w-6 text-white" />
                       </span>
                     </button>
                   </TooltipTrigger>
@@ -152,6 +183,7 @@ export function ToolsSidebar({
           {activeTool === "compress" && (
             <CompressSettings settings={settings} onSettingsChange={onSettingsChange} />
           )}
+          {activeTool === "crop" && <CropSettings />}
           {activeTool === "brush" && (
             <BrushSettings settings={settings} onSettingsChange={onSettingsChange} />
           )}
@@ -161,6 +193,8 @@ export function ToolsSidebar({
           {activeTool === "arrow" && (
             <ArrowSettings settings={settings} onSettingsChange={onSettingsChange} />
           )}
+          {activeTool === "ai" && <AISettings />}
+          {activeTool === "shapes" && <ShapesSettings />}
         </div>
 
         {/* Undo/Redo Section */}
@@ -177,7 +211,7 @@ export function ToolsSidebar({
             >
               <Undo className="h-4 w-4" />
               Undo
-              <kbd className="text-xs px-1.5 rounded bg-theme-sidebar-border">Z</kbd>
+              <kbd className="text-xs px-1.5 rounded bg-theme-primary text-black">Z</kbd>
             </button>
             <button
               onClick={onRedo}
@@ -190,7 +224,7 @@ export function ToolsSidebar({
             >
               <Redo className="h-4 w-4" />
               Redo
-              <kbd className="text-xs px-1.5 rounded bg-theme-sidebar-border">X</kbd>
+              <kbd className="text-xs px-1.5 rounded bg-theme-primary text-black">X</kbd>
             </button>
           </div>
         </div>
@@ -497,6 +531,75 @@ function ArrowSettings({ settings, onSettingsChange }: SettingsProps) {
           value={settings.strokeColor}
           onChange={(color) => onSettingsChange({ ...settings, strokeColor: color })}
         />
+      </SettingSection>
+    </div>
+  );
+}
+
+function CropSettings() {
+  return (
+    <div className="space-y-4">
+      <SettingSection title="Crop Options">
+        <p className="text-sm text-theme-muted-foreground">
+          Click and drag on the image to select the area you want to keep.
+        </p>
+        <div className="space-y-2">
+          <p className="text-xs text-theme-muted-foreground">Aspect Ratio</p>
+          <div className="grid grid-cols-3 gap-2">
+            {["Free", "1:1", "16:9"].map((ratio) => (
+              <button
+                key={ratio}
+                disabled
+                className="py-2 rounded-lg text-xs font-medium bg-theme-accent text-theme-muted-foreground cursor-not-allowed opacity-60"
+              >
+                {ratio}
+              </button>
+            ))}
+          </div>
+        </div>
+      </SettingSection>
+    </div>
+  );
+}
+
+function ShapesSettings() {
+  return (
+    <div className="space-y-4">
+      <SettingSection title="Shape Type">
+        <p className="text-sm text-theme-muted-foreground">
+          Select a shape and click on the image to add it.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {["Rectangle", "Circle", "Line"].map((shape) => (
+            <button
+              key={shape}
+              disabled
+              className="py-2 rounded-lg text-xs font-medium bg-theme-accent text-theme-muted-foreground cursor-not-allowed opacity-60"
+            >
+              {shape}
+            </button>
+          ))}
+        </div>
+      </SettingSection>
+      <SettingSection title="Style">
+        <div className="space-y-2">
+          <p className="text-xs text-theme-muted-foreground">Fill & Stroke options coming soon</p>
+        </div>
+      </SettingSection>
+    </div>
+  );
+}
+
+function AISettings() {
+  return (
+    <div className="space-y-4">
+      <SettingSection title="AI Tools">
+        <button
+          disabled
+          className="w-full py-2.5 px-4 rounded-lg text-sm font-medium bg-theme-accent text-theme-muted-foreground cursor-not-allowed opacity-60"
+        >
+          Remove Background
+        </button>
       </SettingSection>
     </div>
   );

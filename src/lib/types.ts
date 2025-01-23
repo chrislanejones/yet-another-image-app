@@ -22,7 +22,7 @@ export interface ToolSettings {
   arrowStyle: "single" | "double";
 }
 
-export type ToolType = "compress" | "brush" | "text" | "arrow";
+export type ToolType = "compress" | "crop" | "brush" | "text" | "arrow" | "ai" | "shapes";
 
 export interface User {
   name: string;

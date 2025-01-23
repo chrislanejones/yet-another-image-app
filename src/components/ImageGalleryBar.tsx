@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Trash2,
 } from "@/components/icons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ImageGalleryBarProps {
   images: ImageData[];
@@ -66,8 +67,8 @@ export function ImageGalleryBar({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className={`fixed bottom-12 right-3 z-40 bg-theme-popover rounded-xl shadow-2xl border border-theme-border transition-all duration-300 ${
-        showTools ? "left-[21rem]" : "left-3"
+      className={`fixed bottom-12 right-3 z-40 bg-theme-popover rounded-xl shadow-2xl border border-theme-border ${
+        showTools ? "left-84" : "left-3"
       }`}
     >
       {/* Drag handle */}
@@ -139,39 +140,16 @@ export function ImageGalleryBar({
               <div className="flex gap-2 justify-start">
                 {visibleImages.map((img, i) => {
                   const actualIndex = startIndex + i;
-                  const isSelected =
-                    selectedIndex === actualIndex;
+                  const isSelected = selectedIndex === actualIndex;
 
                   return (
-                    <div
+                    <ImageThumbnail
                       key={img.id}
-                      onClick={() => onSelect(actualIndex)}
-                      className="relative group cursor-pointer flex-shrink-0 p-1.5"
-                    >
-                      <div
-                        className={`relative rounded-lg overflow-hidden transition-all ${
-                          isSelected
-                            ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-theme-popover"
-                            : "hover:ring-1 hover:ring-theme-muted-foreground"
-                        }`}
-                      >
-                        <img
-                          src={img.url}
-                          alt={img.name}
-                          className="h-24 w-24 object-cover"
-                        />
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(actualIndex);
-                          }}
-                          className="absolute top-1 right-1 p-1 rounded-full transition-all opacity-0 group-hover:opacity-100 bg-theme-destructive/90 hover:bg-theme-destructive text-white shadow-lg"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
+                      image={img}
+                      isSelected={isSelected}
+                      onSelect={() => onSelect(actualIndex)}
+                      onDelete={() => onDelete(actualIndex)}
+                    />
                   );
                 })}
               </div>
@@ -193,5 +171,51 @@ export function ImageGalleryBar({
         )}
       </div>
     </motion.div>
+  );
+}
+
+interface ImageThumbnailProps {
+  image: ImageData;
+  isSelected: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+}
+
+function ImageThumbnail({ image, isSelected, onSelect, onDelete }: ImageThumbnailProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div
+      onClick={onSelect}
+      className="relative group cursor-pointer shrink-0 p-1.5"
+    >
+      <div
+        className={`relative rounded-lg overflow-hidden ${
+          isSelected
+            ? "ring-2 ring-theme-primary ring-offset-2 ring-offset-theme-popover"
+            : "hover:ring-1 hover:ring-theme-muted-foreground"
+        }`}
+      >
+        {!isLoaded && (
+          <Skeleton className="h-24 w-24 absolute inset-0" />
+        )}
+        <img
+          src={image.url}
+          alt={image.name}
+          className={`h-24 w-24 object-cover ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setIsLoaded(true)}
+        />
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-1 right-1 p-1 rounded-full opacity-0 group-hover:opacity-100 bg-theme-destructive/90 hover:bg-theme-destructive text-white shadow-lg"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
   );
 }

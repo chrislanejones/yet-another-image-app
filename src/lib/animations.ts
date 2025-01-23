@@ -25,9 +25,9 @@ export const slideFromBottom: Variants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: "spring", damping: 25, stiffness: 500 },
+    transition: { type: "spring", damping: 25, stiffness: 200 },
   },
-  exit: { y: "100%", opacity: 0, transition: { duration: 0.15 } },
+  exit: { y: "100%", opacity: 0, transition: { duration: 0.2 } },
 };
 
 export const slideFromBottomFast: Variants = {
@@ -35,9 +35,9 @@ export const slideFromBottomFast: Variants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: "spring", damping: 20, stiffness: 800 },
+    transition: { type: "spring", damping: 30, stiffness: 400 },
   },
-  exit: { y: "100%", opacity: 0, transition: { duration: 0.1 } },
+  exit: { y: "100%", opacity: 0, transition: { duration: 0.15 } },
 };
 
 export const fadeIn: Variants = {

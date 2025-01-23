@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import type { ImageData, ToolSettings, ToolType } from "@/lib/types";
-import { UploadPanel } from "@/components/UploadPanel";
+import { UploadDialog } from "@/components/UploadDialog";
 import { ImageGalleryBar } from "@/components/ImageGalleryBar";
 import { ToolsSidebar } from "@/components/ToolsSidebar";
+import { TopBar } from "@/components/TopBar";
 import { AnnotationCanvas, type AnnotationCanvasRef } from "@/components/AnnotationCanvas";
 import {
   ContextMenu,
@@ -14,14 +15,22 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   ImageIcon,
   Upload,
-  Paintbrush,
   Download,
-  ZoomIn,
-  ZoomOut,
   Undo,
   Redo,
+  Trash2,
 } from "@/components/icons";
 
 const defaultSettings: ToolSettings = {
@@ -50,19 +59,30 @@ export default function PhotoAnnotationApp() {
   const [activeTool, setActiveTool] = useState<ToolType>("compress");
   const [zoom, setZoom] = useState(100);
   const [settings, setSettings] = useState<ToolSettings>(defaultSettings);
-  const [, forceUpdate] = useState(0);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const canvasRef = useRef<AnnotationCanvasRef>(null);
 
   const selectedImage = images[selectedIndex];
 
+  const handleDeleteAll = useCallback(() => {
+    setImages([]);
+    setSelectedIndex(0);
+    setShowDeleteAllDialog(false);
+  }, []);
+
   const handleUndo = useCallback(() => {
     canvasRef.current?.undo();
-    forceUpdate((n) => n + 1);
   }, []);
 
   const handleRedo = useCallback(() => {
     canvasRef.current?.redo();
-    forceUpdate((n) => n + 1);
+  }, []);
+
+  const handleHistoryChange = useCallback((newCanUndo: boolean, newCanRedo: boolean) => {
+    setCanUndo(newCanUndo);
+    setCanRedo(newCanRedo);
   }, []);
 
   const handleDownloadJpeg = useCallback(() => {
@@ -168,15 +188,12 @@ export default function PhotoAnnotationApp() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col bg-theme-background text-theme-foreground">
-      <AnimatePresence>
-        {showUpload && (
-          <UploadPanel
-            onClose={() => setShowUpload(false)}
-            onImagesAdd={handleImagesAdd}
-          />
-        )}
-      </AnimatePresence>
+    <div className="h-screen w-screen overflow-hidden flex flex-col pb-9 bg-theme-background text-theme-foreground">
+      <UploadDialog
+        open={showUpload}
+        onOpenChange={setShowUpload}
+        onImagesAdd={handleImagesAdd}
+      />
 
       <AnimatePresence>
         {showGallery && (
@@ -201,8 +218,8 @@ export default function PhotoAnnotationApp() {
             onToolChange={setActiveTool}
             onUndo={handleUndo}
             onRedo={handleRedo}
-            canUndo={canvasRef.current?.canUndo ?? false}
-            canRedo={canvasRef.current?.canRedo ?? false}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         )}
       </AnimatePresence>
@@ -213,8 +230,8 @@ export default function PhotoAnnotationApp() {
           showTools ? "ml-80" : ""
         } ${showGallery ? "pb-52" : ""} p-3`}
       >
-        {/* Toolbar */}
-        <Toolbar
+        {/* Top Bar */}
+        <TopBar
           zoom={zoom}
           onZoomIn={() => setZoom((z) => Math.min(200, z + 25))}
           onZoomOut={() => setZoom((z) => Math.max(25, z - 25))}
@@ -258,16 +275,17 @@ export default function PhotoAnnotationApp() {
                     image={selectedImage}
                     tool={activeTool}
                     settings={settings}
+                    onHistoryChange={handleHistoryChange}
                   />
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem onClick={handleUndo} disabled={!canvasRef.current?.canUndo}>
+                <ContextMenuItem onClick={handleUndo} disabled={!canUndo}>
                   <Undo className="h-4 w-4" />
                   Undo
                   <ContextMenuShortcut>Alt+Z</ContextMenuShortcut>
                 </ContextMenuItem>
-                <ContextMenuItem onClick={handleRedo} disabled={!canvasRef.current?.canRedo}>
+                <ContextMenuItem onClick={handleRedo} disabled={!canRedo}>
                   <Redo className="h-4 w-4" />
                   Redo
                   <ContextMenuShortcut>Alt+X</ContextMenuShortcut>
@@ -276,6 +294,19 @@ export default function PhotoAnnotationApp() {
                 <ContextMenuItem onClick={handleDownloadJpeg}>
                   <Download className="h-4 w-4" />
                   Download as JPEG
+                </ContextMenuItem>
+                <ContextMenuItem disabled>
+                  <Download className="h-4 w-4" />
+                  Download as WebP
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  className="text-white focus:text-white"
+                  disabled={images.length === 0}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete All Images
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
@@ -294,124 +325,27 @@ export default function PhotoAnnotationApp() {
         imageCount={images.length}
         activeTool={activeTool}
       />
-    </div>
-  );
-}
 
-interface ToolbarProps {
-  zoom: number;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  showUpload: boolean;
-  showGallery: boolean;
-  showTools: boolean;
-  showKbdHints: boolean;
-  onToggleUpload: () => void;
-  onToggleGallery: () => void;
-  onToggleTools: () => void;
-  hasSelectedImage: boolean;
-}
-
-function Toolbar({
-  zoom,
-  onZoomIn,
-  onZoomOut,
-  showUpload,
-  showGallery,
-  showTools,
-  showKbdHints,
-  onToggleUpload,
-  onToggleGallery,
-  onToggleTools,
-  hasSelectedImage,
-}: ToolbarProps) {
-  const toggleButtons = [
-    {
-      key: "U",
-      icon: Upload,
-      label: "Upload",
-      state: showUpload,
-      toggle: onToggleUpload,
-    },
-    {
-      key: "I",
-      icon: ImageIcon,
-      label: "Gallery",
-      state: showGallery,
-      toggle: onToggleGallery,
-    },
-    {
-      key: "S",
-      icon: Paintbrush,
-      label: "Tools",
-      state: showTools,
-      toggle: onToggleTools,
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-3 bg-theme-card/80 backdrop-blur-sm rounded-xl border border-theme-border">
-      {/* Left: Zoom */}
-      <div className="flex items-center gap-2 justify-self-start">
-        <button
-          onClick={onZoomOut}
-          className="p-2 rounded-lg transition-colors text-theme-muted-foreground hover:text-theme-foreground"
-        >
-          <ZoomOut className="h-5 w-5" />
-        </button>
-        {showKbdHints && (
-          <kbd className="text-xs px-1.5 py-0.5 rounded bg-theme-accent text-theme-muted-foreground">
-            Alt -
-          </kbd>
-        )}
-        <span className="text-sm w-16 text-center text-theme-muted-foreground">
-          {zoom}%
-        </span>
-        {showKbdHints && (
-          <kbd className="text-xs px-1.5 py-0.5 rounded bg-theme-accent text-theme-muted-foreground">
-            Alt +
-          </kbd>
-        )}
-        <button
-          onClick={onZoomIn}
-          className="p-2 rounded-lg transition-colors text-theme-muted-foreground hover:text-theme-foreground"
-        >
-          <ZoomIn className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Center: Upload, Gallery, Tools */}
-      <div className="flex gap-1 p-1 rounded-lg bg-theme-muted justify-self-center">
-        {toggleButtons.map(({ key, icon: Icon, label, state, toggle }) => (
-          <button
-            key={key}
-            onClick={toggle}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
-              state
-                ? "bg-theme-accent text-theme-foreground"
-                : "text-theme-muted-foreground hover:text-theme-foreground"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{label}</span>
-            {showKbdHints && (
-              <kbd className="hidden sm:inline text-xs px-1.5 rounded bg-theme-accent">
-                Alt {key}
-              </kbd>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Right: Export */}
-      <div className="flex items-center gap-2 justify-self-end">
-        {hasSelectedImage && (
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-theme-primary text-theme-primary-foreground">
-            <Download className="h-4 w-4" />
-            Export
-          </button>
-        )}
-      </div>
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete all images?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all {images.length} image{images.length !== 1 ? "s" : ""} from your workspace. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -449,7 +383,7 @@ function EmptyState({ onUploadClick, showKbdHints }: EmptyStateProps) {
         <Upload className="h-5 w-5" />
         Upload Images
         {showKbdHints && (
-          <kbd className="text-xs px-2 py-0.5 rounded ml-2 bg-theme-chart4">
+          <kbd className="text-xs px-2 py-0.5 rounded ml-2 bg-theme-primary text-black">
             Alt U
           </kbd>
         )}
@@ -459,7 +393,7 @@ function EmptyState({ onUploadClick, showKbdHints }: EmptyStateProps) {
         <div className="mt-12 grid grid-cols-3 gap-6 max-w-xl mx-auto text-sm">
           {shortcuts.map(({ key, label }) => (
             <div key={key} className="text-center">
-              <kbd className="inline-block px-4 py-2 rounded-lg text-sm mb-2 font-mono bg-theme-muted text-theme-foreground">
+              <kbd className="inline-block px-4 py-2 rounded-lg text-sm mb-2 font-mono bg-theme-primary text-black">
                 {key}
               </kbd>
               <p className="text-theme-muted-foreground">{label}</p>
@@ -470,7 +404,7 @@ function EmptyState({ onUploadClick, showKbdHints }: EmptyStateProps) {
 
       {!showKbdHints && (
         <p className="mt-8 text-xs text-theme-muted-foreground">
-          Press <kbd className="px-1.5 py-0.5 rounded bg-theme-muted">Alt /</kbd> to show keyboard shortcuts
+          Press <kbd className="px-1.5 py-0.5 rounded bg-theme-primary text-black">Alt /</kbd> to show keyboard shortcuts
         </p>
       )}
     </div>
@@ -485,7 +419,7 @@ interface StatusBarProps {
 
 function StatusBar({ selectedImage, imageCount, activeTool }: StatusBarProps) {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-2 text-xs bg-theme-card/80 border-t border-theme-border text-theme-muted-foreground">
+    <div className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-[1fr_auto_1fr] items-center px-4 py-2 text-xs bg-theme-card/80 backdrop-blur-sm border-t border-theme-border text-theme-muted-foreground">
       {/* Left: Selected file name */}
       <div className="flex items-center gap-2 justify-self-start">
         {selectedImage && (
@@ -499,9 +433,9 @@ function StatusBar({ selectedImage, imageCount, activeTool }: StatusBarProps) {
 
       {/* Center: Hotkeys info */}
       <span className="text-xs text-theme-muted-foreground hidden md:inline justify-self-center">
-        Hotkeys: <kbd className="px-1 py-0.5 rounded bg-theme-muted">Alt + /</kbd>
-        <span className="mx-1 opacity-50">[mac]</span>
-        <kbd className="px-1 py-0.5 rounded bg-theme-muted">⌘ + /</kbd>
+        Hotkeys: <kbd className="px-1 py-0.5 rounded bg-theme-primary text-black">Alt + /</kbd>
+        <span className="mx-1 opacity-50"></span>
+        <kbd className="px-1 py-0.5 rounded bg-theme-primary text-black">⌘ + /</kbd>
       </span>
 
       {/* Right: Image count, active tool */}
