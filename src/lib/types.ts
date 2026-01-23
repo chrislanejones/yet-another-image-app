@@ -19,7 +19,7 @@ export interface ToolSettings {
   textColor: string;
   strokeWidth: number;
   strokeColor: string;
-  fillShape: boolean;
+  arrowStyle: "single" | "double";
 }
 
 export type ToolType = "compress" | "brush" | "text" | "arrow";

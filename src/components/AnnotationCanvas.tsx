@@ -25,6 +25,8 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastPoint, setLastPoint] = useState<Point | null>(null);
+  const [startPoint, setStartPoint] = useState<Point | null>(null);
+  const [previewCanvas, setPreviewCanvas] = useState<globalThis.ImageData | null>(null);
   const [history, setHistory] = useState<ImageData[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
@@ -119,39 +121,138 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
     };
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (tool !== "brush") return;
-    saveSnapshot(); // Save state before drawing starts
-    setIsDrawing(true);
-    setLastPoint(getPoint(e));
-  };
+  const drawArrow = useCallback((
+    ctx: CanvasRenderingContext2D,
+    from: Point,
+    to: Point,
+    color: string,
+    width: number,
+    style: "single" | "double"
+  ) => {
+    // Scale head size with stroke width - larger heads for thicker arrows
+    const headLength = Math.max(20, width * 3);
+    const headWidth = Math.PI / 5; // ~36 degrees, wider arrowhead
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || tool !== "brush" || !lastPoint) return;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // Calculate where line should end (before arrowhead)
+    const lineEndX = to.x - (headLength * 0.5) * Math.cos(angle);
+    const lineEndY = to.y - (headLength * 0.5) * Math.sin(angle);
+    const lineStartX = style === "double"
+      ? from.x + (headLength * 0.5) * Math.cos(angle)
+      : from.x;
+    const lineStartY = style === "double"
+      ? from.y + (headLength * 0.5) * Math.sin(angle)
+      : from.y;
+
+    // Draw line (shortened to not overlap with arrowheads)
+    ctx.beginPath();
+    ctx.moveTo(lineStartX, lineStartY);
+    ctx.lineTo(lineEndX, lineEndY);
+    ctx.stroke();
+
+    // Draw end arrowhead
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(
+      to.x - headLength * Math.cos(angle - headWidth),
+      to.y - headLength * Math.sin(angle - headWidth)
+    );
+    ctx.lineTo(
+      to.x - headLength * Math.cos(angle + headWidth),
+      to.y - headLength * Math.sin(angle + headWidth)
+    );
+    ctx.closePath();
+    ctx.fill();
+
+    // Draw start arrowhead for double arrow
+    if (style === "double") {
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(
+        from.x + headLength * Math.cos(angle - headWidth),
+        from.y + headLength * Math.sin(angle - headWidth)
+      );
+      ctx.lineTo(
+        from.x + headLength * Math.cos(angle + headWidth),
+        from.y + headLength * Math.sin(angle + headWidth)
+      );
+      ctx.closePath();
+      ctx.fill();
+    }
+  }, []);
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (tool !== "brush" && tool !== "arrow") return;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
     const point = getPoint(e);
-    ctx.beginPath();
-    ctx.moveTo(lastPoint.x, lastPoint.y);
-    ctx.lineTo(point.x, point.y);
-    ctx.strokeStyle = settings.brushColor;
-    ctx.lineWidth = settings.brushSize;
-    ctx.lineCap = "round";
-    ctx.globalAlpha = settings.brushOpacity / 100;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+
+    if (tool === "arrow") {
+      // Save canvas state for preview restoration
+      setPreviewCanvas(ctx.getImageData(0, 0, canvas.width, canvas.height));
+      setStartPoint(point);
+    }
+
+    saveSnapshot(); // Save state before drawing starts
+    setIsDrawing(true);
     setLastPoint(point);
   };
 
-  const stopDrawing = () => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !lastPoint) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const point = getPoint(e);
+
+    if (tool === "brush") {
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.strokeStyle = settings.brushColor;
+      ctx.lineWidth = settings.brushSize;
+      ctx.lineCap = "round";
+      ctx.globalAlpha = settings.brushOpacity / 100;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      setLastPoint(point);
+    } else if (tool === "arrow" && startPoint && previewCanvas) {
+      // Restore canvas to state before arrow preview
+      ctx.putImageData(previewCanvas, 0, 0);
+      // Draw arrow preview
+      drawArrow(ctx, startPoint, point, settings.strokeColor, settings.strokeWidth, settings.arrowStyle);
+    }
+  };
+
+  const stopDrawing = (e?: React.MouseEvent<HTMLCanvasElement>) => {
+    if (isDrawing && tool === "arrow" && startPoint && previewCanvas) {
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (canvas && ctx && e) {
+        const endPoint = getPoint(e);
+        // Restore canvas and draw final arrow
+        ctx.putImageData(previewCanvas, 0, 0);
+        drawArrow(ctx, startPoint, endPoint, settings.strokeColor, settings.strokeWidth, settings.arrowStyle);
+      }
+    }
     if (isDrawing) {
       saveSnapshot(); // Save state after drawing ends
     }
     setIsDrawing(false);
     setLastPoint(null);
+    setStartPoint(null);
+    setPreviewCanvas(null);
   };
 
   return (
@@ -159,11 +260,11 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, AnnotationCanvas
       ref={canvasRef}
       onMouseDown={startDrawing}
       onMouseMove={draw}
-      onMouseUp={stopDrawing}
-      onMouseLeave={stopDrawing}
+      onMouseUp={(e) => stopDrawing(e)}
+      onMouseLeave={() => stopDrawing()}
       className="max-w-full max-h-full object-contain"
       style={{
-        cursor: tool === "brush" ? "crosshair" : "default",
+        cursor: tool === "brush" || tool === "arrow" ? "crosshair" : "default",
         touchAction: "none",
       }}
     />

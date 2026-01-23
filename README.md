@@ -13,11 +13,13 @@ A browser-based image annotation and editing tool built with React and TypeScrip
 - **Compress & Resize**: Adjust quality (10-100%), resize with optional aspect ratio lock
 - **Brush**: Freehand drawing with customizable size, opacity, and color
 - **Text**: Add text annotations with adjustable font size, weight, and color
-- **Arrow**: Draw arrows to point and highlight with configurable thickness and color
+- **Arrow**: Click and drag to draw arrows (like MS Paint) - single or double-headed with configurable thickness and color
 
 ### Canvas
 - Zoomable canvas (25% - 200%)
-- Real-time brush drawing with smooth strokes
+- Real-time brush and arrow drawing
+- Undo/redo support for all drawing operations
+- Right-click context menu for quick actions
 
 ## Keyboard Shortcuts
 

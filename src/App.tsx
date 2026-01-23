@@ -37,7 +37,7 @@ const defaultSettings: ToolSettings = {
   textColor: "#ffffff",
   strokeWidth: 3,
   strokeColor: "#3b82f6",
-  fillShape: false,
+  arrowStyle: "single",
 };
 
 export default function PhotoAnnotationApp() {

@@ -15,6 +15,7 @@ import {
   Paintbrush,
   TypeIcon,
   ArrowUpRight,
+  MoveHorizontal,
   Undo,
   Redo,
 } from "@/components/icons";
@@ -401,6 +402,11 @@ function TextSettings({ settings, onSettingsChange }: SettingsProps) {
 }
 
 function ArrowSettings({ settings, onSettingsChange }: SettingsProps) {
+  const arrowTypes = [
+    { id: "single" as const, label: "Single", icon: ArrowUpRight },
+    { id: "double" as const, label: "Double", icon: MoveHorizontal },
+  ];
+
   return (
     <div className="space-y-4">
       <SettingSection title="Arrow Style">
@@ -410,7 +416,7 @@ function ArrowSettings({ settings, onSettingsChange }: SettingsProps) {
             <svg width="120" height="40" viewBox="0 0 120 40">
               <defs>
                 <marker
-                  id="arrowhead-preview"
+                  id="arrowhead-end-preview"
                   markerWidth="10"
                   markerHeight="7"
                   refX="9"
@@ -419,7 +425,22 @@ function ArrowSettings({ settings, onSettingsChange }: SettingsProps) {
                 >
                   <polygon
                     points="0 0, 10 3.5, 0 7"
-                    fill={settings.fillShape ? settings.strokeColor : "none"}
+                    fill={settings.strokeColor}
+                    stroke={settings.strokeColor}
+                    strokeWidth="1"
+                  />
+                </marker>
+                <marker
+                  id="arrowhead-start-preview"
+                  markerWidth="10"
+                  markerHeight="7"
+                  refX="1"
+                  refY="3.5"
+                  orient="auto"
+                >
+                  <polygon
+                    points="10 0, 0 3.5, 10 7"
+                    fill={settings.strokeColor}
                     stroke={settings.strokeColor}
                     strokeWidth="1"
                   />
@@ -432,9 +453,28 @@ function ArrowSettings({ settings, onSettingsChange }: SettingsProps) {
                 y2="20"
                 stroke={settings.strokeColor}
                 strokeWidth={settings.strokeWidth}
-                markerEnd="url(#arrowhead-preview)"
+                markerEnd="url(#arrowhead-end-preview)"
+                markerStart={settings.arrowStyle === "double" ? "url(#arrowhead-start-preview)" : undefined}
               />
             </svg>
+          </div>
+
+          {/* Arrow type toggle */}
+          <div className="flex gap-1 p-1 rounded-lg bg-theme-muted">
+            {arrowTypes.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => onSettingsChange({ ...settings, arrowStyle: id })}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  settings.arrowStyle === id
+                    ? "bg-theme-accent text-theme-foreground"
+                    : "text-theme-muted-foreground hover:text-theme-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
           </div>
 
           <div className="space-y-2">
@@ -447,14 +487,6 @@ function ArrowSettings({ settings, onSettingsChange }: SettingsProps) {
               onChange={(v) => onSettingsChange({ ...settings, strokeWidth: v })}
               min={1}
               max={20}
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-2 rounded-lg bg-theme-accent/50">
-            <label className="text-sm text-theme-sidebar-foreground">Solid arrowhead</label>
-            <Switch
-              checked={settings.fillShape}
-              onChange={(v) => onSettingsChange({ ...settings, fillShape: v })}
             />
           </div>
         </div>
