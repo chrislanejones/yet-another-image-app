@@ -11,15 +11,24 @@ export interface ToolSettings {
   keepAspect: boolean;
   width: number;
   height: number;
+
   brushSize: number;
   brushOpacity: number;
   brushColor: string;
+
+    // ✅ emoji stamp
+    emoji?: string;
+
   fontSize: number;
   fontWeight: "normal" | "bold";
   textColor: string;
+
   strokeWidth: number;
   strokeColor: string;
   arrowStyle: "single" | "double";
+
+  // ✅ Crop / Rotate
+  rotation: number; // degrees
 }
 
 export type ToolType = "compress" | "crop" | "brush" | "text" | "arrow" | "ai" | "shapes";
