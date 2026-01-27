@@ -6,7 +6,7 @@ import { Slider } from "@/components/ui/Slider";
 /* Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const STROKE_WIDTH_PRESETS = [2, 4, 6, 8];
+
 
 const COLORS = [
   "#ef4444",
@@ -19,6 +19,8 @@ const COLORS = [
   "#ec4899",
   "#000000",
 ];
+
+const STROKE_WIDTH_PRESETS = [2, 4, 6, 8] as const;
 
 /* ------------------------------------------------------------------ */
 /* Arrow Settings                                                     */
@@ -33,66 +35,67 @@ export function ArrowSettings({
 }) {
   return (
     <div className="space-y-6">
-      {/* ------------------------------------------------------------ */}
-      {/* Stroke Width                                                 */}
-      {/* ------------------------------------------------------------ */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium text-theme-foreground">
-          Stroke Width
-        </h3>
+     {/* Stroke width */}
+<div className="space-y-2">
+  <div className="flex items-center justify-between">
+    <label className="text-xs text-theme-muted-foreground">
+      Stroke width
+    </label>
+    <span className="text-xs font-medium text-theme-foreground">
+      {settings.strokeWidth}px
+    </span>
+  </div>
 
-        <div className="flex items-center justify-between">
-          {STROKE_WIDTH_PRESETS.map((width) => {
-            const active = settings.strokeWidth === width;
+  {/* Presets */}
+  <div className="flex items-center justify-between">
+    {STROKE_WIDTH_PRESETS.map((width) => {
+      const active = settings.strokeWidth === width;
 
-            return (
-              <button
-                key={width}
-                onClick={() =>
-                  onChange({ ...settings, strokeWidth: width })
-                }
-                className={`
-                  flex
-                  items-center
-                  justify-center
-                  w-10
-                  h-10
-                  rounded-full
-                  transition-all
-                  ${
-                    active
-                      ? "ring-2 ring-theme-ring ring-offset-2 ring-offset-theme-sidebar"
-                      : "hover:bg-theme-accent"
-                  }
-                `}
-                aria-label={`Stroke width ${width}`}
-              >
-                <span
-                  className="rounded-full bg-theme-foreground"
-                  style={{
-                    width: width * 2,
-                    height: width * 2,
-                  }}
-                />
-              </button>
-            );
-          })}
-        </div>
-
-        <Slider
-          value={settings.strokeWidth}
-          onChange={(v) =>
-            onChange({ ...settings, strokeWidth: v })
+      return (
+        <button
+          key={width}
+          onClick={() =>
+            onChange({ ...settings, strokeWidth: width })
           }
-          min={1}
-          max={10}
-          step={1}
-        />
+          className={`
+            flex
+            items-center
+            justify-center
+            w-10
+            h-10
+            rounded-full
+            transition-all
+            ${
+              active
+                ? "ring-2 ring-theme-ring ring-offset-2 ring-offset-theme-sidebar"
+                : "hover:bg-theme-accent"
+            }
+          `}
+          aria-label={`Stroke width ${width}`}
+        >
+          <span
+            className="rounded-full bg-theme-foreground"
+            style={{
+              width: width,
+              height: width,
+            }}
+          />
+        </button>
+      );
+    })}
+  </div>
 
-        <div className="text-xs text-theme-muted-foreground">
-          {settings.strokeWidth}px
-        </div>
-      </div>
+  {/* Slider */}
+  <Slider
+    value={settings.strokeWidth}
+    onChange={(v) =>
+      onChange({ ...settings, strokeWidth: v })
+    }
+    min={1}
+    max={10}
+    step={1}
+  />
+</div>
 
       {/* ------------------------------------------------------------ */}
       {/* Arrow Style                                                  */}

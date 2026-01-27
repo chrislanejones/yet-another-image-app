@@ -19,4 +19,8 @@ export const defaultToolSettings: ToolSettings = {
   arrowStyle: "single",
 
   rotation: 0,
+
+  // Blur
+  blurSize: 32,
+  blurIntensity: 8,
 };

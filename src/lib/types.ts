@@ -17,7 +17,7 @@ export interface ToolSettings {
   brushColor: string;
 
     // ✅ emoji stamp
-    emoji?: string;
+  emoji?: string;
 
   fontSize: number;
   fontWeight: "normal" | "bold";
@@ -29,9 +29,15 @@ export interface ToolSettings {
 
   // ✅ Crop / Rotate
   rotation: number; // degrees
+
+  shape?: "rect" | "circle" | "handCircle" | "line";
+
+  // ✅ Blur
+  blurSize: number;
+  blurIntensity: number;
 }
 
-export type ToolType = "compress" | "crop" | "brush" | "text" | "arrow" | "ai" | "shapes";
+export type ToolType = "compress" | "crop" | "brush" | "text" | "arrow" | "ai" | "shapes" | "blur";
 
 export interface User {
   name: string;

@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Sparkles,
   Shapes,
+  Droplets,
 } from "lucide-react";
 
 export interface ToolDefinition {
@@ -66,5 +67,12 @@ export const TOOLS: ToolDefinition[] = [
     description: "Add geometric shapes",
     icon: Shapes,
     gradient: "from-pink-500 to-rose-500",
+  },
+  {
+    id: "blur",
+    label: "Blur",
+    description: "Blur sensitive areas",
+    icon: Droplets,
+    gradient: "from-slate-400 to-slate-600",
   },
 ];

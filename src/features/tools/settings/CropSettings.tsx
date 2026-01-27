@@ -1,17 +1,12 @@
-import { RotateCcw, RotateCw, Crop } from "lucide-react";
+import { RotateCcw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { ToolSettings } from "@/lib/types";
 
 interface CropSettingsProps {
-  settings: ToolSettings;
-  onChange: (settings: ToolSettings) => void;
   onApplyCrop?: () => void;
   onRotate?: (deg: number) => void;
 }
 
 export function CropSettings({
-  settings,
-  onChange,
   onApplyCrop,
   onRotate,
 }: CropSettingsProps) {
@@ -21,17 +16,6 @@ export function CropSettings({
         Crop & Rotate
       </h3>
 
-      {/* Crop */}
-      <Button
-        variant="outline"
-        className="w-full gap-2"
-        onClick={onApplyCrop}
-      >
-        <Crop className="h-4 w-4" />
-        Crop Selection
-      </Button>
-
-      {/* Rotate */}
       <div className="grid grid-cols-2 gap-2">
         <Button
           variant="secondary"
@@ -52,9 +36,14 @@ export function CropSettings({
         </Button>
       </div>
 
-      <p className="text-xs text-theme-muted-foreground">
-        Rotation applies instantly. Crop selection coming next.
-      </p>
+      {onApplyCrop && (
+        <Button
+          onClick={onApplyCrop}
+          className="w-full"
+        >
+          Apply Crop
+        </Button>
+      )}
     </div>
   );
 }

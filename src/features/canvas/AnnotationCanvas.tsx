@@ -148,7 +148,7 @@ export const AnnotationCanvas = forwardRef<
       className="max-w-full max-h-full object-contain"
       style={{
         cursor:
-          tool === "brush" || tool === "arrow" || tool === "crop"
+          tool === "brush" || tool === "arrow" || tool === "crop" || tool === "blur"
             ? "crosshair"
             : "default",
         touchAction: "none",

@@ -18,7 +18,15 @@ import {
   BrushSettings,
   ArrowSettings,
   CropSettings,
+  ShapesSettings,
+  BlurSettings,
 } from "./settings";
+
+const user = {
+  name: "Chris Lane Jones",
+  email: "chris@example.com",
+  avatar: "https://api.dicebear.com/9.x/miniavs/svg?seed=Jack",
+};
 
 /* ------------------------------------------------------------------ */
 /* Props                                                              */
@@ -133,41 +141,53 @@ export function ToolsSidebar({
         />
       </div>
 
-      {/* Tool Panels */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {activeTool === "compress" && (
-          <ResizeSettings
-            settings={settings}
-            onSettingsChange={onSettingsChange}
-            onResize={onResize}
-            imageWidth={imageWidth}
-            imageHeight={imageHeight}
-          />
-        )}
+     {/* Tool Panels */}
+<div className="flex-1 overflow-y-auto p-4 space-y-4">
+  {activeTool === "compress" && (
+    <ResizeSettings
+      settings={settings}
+      onSettingsChange={onSettingsChange}
+      onResize={onResize}
+      imageWidth={imageWidth}
+      imageHeight={imageHeight}
+    />
+  )}
 
-        {activeTool === "crop" && (
-          <CropSettings
-            settings={settings}
-            onChange={onSettingsChange}
-            onRotate={handleRotate}
-            onApplyCrop={onApplyCrop}
-          />
-        )}
+  {activeTool === "crop" && (
+    <CropSettings
+      onRotate={handleRotate}
+      onApplyCrop={onApplyCrop}
+    />
+  )}
 
-        {activeTool === "brush" && (
-          <BrushSettings
-            settings={settings}
-            onChange={onSettingsChange}
-          />
-        )}
+  {activeTool === "brush" && (
+    <BrushSettings
+      settings={settings}
+      onChange={onSettingsChange}
+    />
+  )}
 
-        {activeTool === "arrow" && (
-          <ArrowSettings
-            settings={settings}
-            onChange={onSettingsChange}
-          />
-        )}
-      </div>
+  {activeTool === "arrow" && (
+    <ArrowSettings
+      settings={settings}
+      onChange={onSettingsChange}
+    />
+  )}
+
+  {activeTool === "shapes" && (
+    <ShapesSettings
+      settings={settings}
+      onChange={onSettingsChange}
+    />
+  )}
+
+  {activeTool === "blur" && (
+    <BlurSettings
+      settings={settings}
+      onChange={onSettingsChange}
+    />
+  )}
+</div>
 
       {/* Export */}
       <div className="p-4 border-t border-theme-sidebar-border space-y-2">
@@ -260,6 +280,24 @@ export function ToolsSidebar({
           </button>
         </div>
       </div>
+      {/* User Section */}
+<div className="p-2 border-t border-theme-sidebar-border">
+  <div className="flex items-center gap-3">
+    <img
+      src={user.avatar}
+      alt={user.name}
+      className="h-10 w-10 rounded-full bg-theme-accent"
+    />
+    <div className="min-w-0 flex-1">
+      <div className="truncate text-sm font-medium text-theme-sidebar-foreground">
+        {user.name}
+      </div>
+      <div className="truncate text-xs text-theme-muted-foreground">
+        {user.email}
+      </div>
+    </div>
+  </div>
+</div>
     </motion.div>
   );
 }

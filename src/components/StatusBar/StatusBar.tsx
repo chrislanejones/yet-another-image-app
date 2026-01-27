@@ -22,8 +22,17 @@ export function StatusBar({
   const imageMeta = getImageMeta(selectedImage);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-9 px-4 flex items-center justify-between text-xs bg-theme-card/80 backdrop-blur-sm border-t border-theme-border text-theme-muted-foreground">
-      <div className="flex items-center gap-2">
+    <div
+      className="
+        fixed bottom-0 left-0 right-0 h-9 px-4
+        grid grid-cols-3 items-center
+        text-xs bg-theme-card/80 backdrop-blur-sm
+        border-t border-theme-border
+        text-theme-muted-foreground
+      "
+    >
+      {/* Left */}
+      <div className="flex items-center gap-2 justify-self-start">
         {imageMeta && (
           <>
             <span>{imageMeta.name}</span>
@@ -33,7 +42,19 @@ export function StatusBar({
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Center */}
+      <div className="justify-self-center hidden md:flex items-center gap-1">
+        <span>Hotkeys:</span>
+        <kbd className="px-1 py-0.5 rounded bg-theme-primary text-black">
+          Alt + /
+        </kbd>
+        <kbd className="px-1 py-0.5 rounded bg-theme-primary text-black">
+          ⌘ + /
+        </kbd>
+      </div>
+
+      {/* Right */}
+      <div className="flex items-center gap-2 justify-self-end">
         <span>{formatImageCount(imageCount)}</span>
         {selectedImage && (
           <>
