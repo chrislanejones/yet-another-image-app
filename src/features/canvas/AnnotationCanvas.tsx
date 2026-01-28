@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -32,7 +33,18 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, Props>(
   ) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const textInputRef = useRef<HTMLTextAreaElement>(null);
     const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+
+    // Text tool state
+    const [textInput, setTextInput] = useState<{
+      x: number;
+      y: number;
+      canvasX: number;
+      canvasY: number;
+      text: string;
+    } | null>(null);
+    const [pendingText, setPendingText] = useState<string>("");
 
     const { snapshot, undo, redo } = useCanvasHistory(
       canvasRef,
@@ -61,6 +73,108 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, Props>(
       };
       img.src = image.url;
     }, [image, snapshot]);
+
+    // Commit text to canvas
+    const commitText = useCallback(() => {
+      if (!textInput || !textInput.text.trim()) {
+        setTextInput(null);
+        return;
+      }
+
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) {
+        setTextInput(null);
+        return;
+      }
+
+      // Draw the text
+      ctx.font = `${settings.fontWeight} ${settings.fontSize}px sans-serif`;
+      ctx.fillStyle = settings.textColor;
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+
+      const lines = textInput.text.split("\n");
+      const lineHeight = settings.fontSize * 1.2;
+
+      lines.forEach((line, index) => {
+        ctx.fillText(line, textInput.canvasX, textInput.canvasY + index * lineHeight);
+      });
+
+      // Dispatch event for text memory
+      window.dispatchEvent(
+        new CustomEvent("text-committed", { detail: { text: textInput.text } })
+      );
+
+      snapshot();
+      setTextInput(null);
+    }, [textInput, settings.fontSize, settings.fontWeight, settings.textColor, snapshot]);
+
+    // Listen for prefill-text events
+    useEffect(() => {
+      const handlePrefill = (e: CustomEvent<{ text: string }>) => {
+        if (tool === "text") {
+          // Set pending text to prefill on next click
+          setPendingText(e.detail.text);
+        }
+      };
+
+      window.addEventListener("prefill-text", handlePrefill as EventListener);
+      return () => {
+        window.removeEventListener("prefill-text", handlePrefill as EventListener);
+      };
+    }, [tool]);
+
+    // Handle canvas click for text tool
+    const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+      if (tool !== "text") return;
+
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      // Screen position relative to container
+      const screenX = e.clientX - containerRect.left;
+      const screenY = e.clientY - containerRect.top;
+
+      // Canvas position (actual pixel coordinates)
+      const canvasX = ((e.clientX - rect.left) * canvas.width) / rect.width;
+      const canvasY = ((e.clientY - rect.top) * canvas.height) / rect.height;
+
+      // If there's existing text, commit it first
+      if (textInput) {
+        commitText();
+      }
+
+      setTextInput({
+        x: screenX,
+        y: screenY,
+        canvasX,
+        canvasY,
+        text: pendingText,
+      });
+
+      // Clear pending text after use
+      if (pendingText) {
+        setPendingText("");
+      }
+
+      // Focus the input after a short delay
+      setTimeout(() => textInputRef.current?.focus(), 10);
+    }, [tool, textInput, commitText, pendingText]);
+
+    // Handle text input key events
+    const handleTextKeyDown = useCallback((e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setTextInput(null);
+      } else if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        commitText();
+      }
+    }, [commitText]);
 
     useImperativeHandle(ref, () => ({
       undo,
@@ -120,6 +234,7 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, Props>(
       >
         <canvas
           ref={canvasRef}
+          onClick={handleCanvasClick}
           onMouseDown={drawing.onMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={drawing.onMouseUp}
@@ -127,7 +242,9 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, Props>(
           className="max-w-full max-h-full object-contain"
           style={{
             cursor:
-              tool === "arrow" || tool === "crop" || tool === "shapes"
+              tool === "text"
+                ? "text"
+                : tool === "arrow" || tool === "crop" || tool === "shapes"
                 ? "crosshair"
                 : showSizeCursor
                 ? "none"
@@ -149,6 +266,32 @@ export const AnnotationCanvas = forwardRef<AnnotationCanvasRef, Props>(
               top: cursorPos.y - getVisualCursorSize() / 2,
               boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
             }}
+          />
+        )}
+
+        {/* Text input overlay */}
+        {textInput && (
+          <textarea
+            ref={textInputRef}
+            value={textInput.text}
+            onChange={(e) => setTextInput({ ...textInput, text: e.target.value })}
+            onKeyDown={handleTextKeyDown}
+            onBlur={commitText}
+            placeholder="Type text..."
+            className="absolute bg-transparent border-2 border-dashed border-theme-primary outline-none resize-none overflow-hidden"
+            style={{
+              left: textInput.x,
+              top: textInput.y,
+              minWidth: 100,
+              minHeight: settings.fontSize * 1.5,
+              fontSize: settings.fontSize * (zoom / 100),
+              fontWeight: settings.fontWeight,
+              color: settings.textColor,
+              fontFamily: "sans-serif",
+              lineHeight: 1.2,
+              padding: "2px 4px",
+            }}
+            autoFocus
           />
         )}
       </div>

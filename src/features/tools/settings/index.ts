@@ -5,3 +5,4 @@ export { CropSettings } from "./CropSettings";
 export { ShapesSettings} from "./ShapesSettings"
 export { BlurSettings } from "./BlurSettings"
 export { AISettings } from "./AISettings";
+export { TextSettings } from "./TextSettings";

@@ -156,20 +156,20 @@ export function BrushSettings({
 
         <button
           onClick={() => setEmojiOpen((v) => !v)}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+          className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg transition-all ${
             settings.emoji
               ? "bg-theme-primary text-theme-secondary ring-2 ring-theme-primary/50"
-              : "bg-theme-accent hover:ring-2 hover:ring-theme-accent/50"
+              : "bg-theme-primary text-theme-secondary hover:ring-2 hover:ring-theme-accent/50"
           }`}
         >
           <span className="text-lg">
             {settings.emoji ?? "😀"}
           </span>
           <span
-            className={`text-xs ${
+            className={`text-sm font-medium ${
               settings.emoji
                 ? "text-theme-primary-foreground/70"
-                : "text-theme-muted-foreground"
+                : "text-theme-secondary"
             }`}
           >
             {settings.emoji ? "Active" : "Choose emoji"}

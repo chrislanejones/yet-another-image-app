@@ -8,6 +8,7 @@ import { formatLabels } from "@/components/ui/select";
 import { UploadDialog } from "@/features/upload";
 import { ImageGalleryBar } from "@/features/gallery";
 import { ToolsSidebar } from "@/features/tools";
+import type { TextMemory } from "@/features/tools/settings/TextSettings";
 import { TopBar } from "@/components/TopBar";
 import {
   AnnotationCanvas,
@@ -88,6 +89,7 @@ export function AppShell() {
   const [zoom, setZoom] = useState(100);
 
   const [showUpload, setShowUpload] = useState(true);
+  const [showTopBar, setShowTopBar] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const [showTools, setShowTools] = useState(false);
   const [showKbdHints, setShowKbdHints] = useState(false);
@@ -107,6 +109,10 @@ export function AppShell() {
 
   const [isCompareMode, setIsCompareMode] = useState(false);
 
+  // Recent text memories for text tool
+  const [recentTexts, setRecentTexts] = useState<TextMemory[]>([]);
+  const textIdCounter = useRef(0);
+
   // Track previous image count for detecting transitions
   const prevImagesLengthRef = useRef(0);
 
@@ -122,21 +128,24 @@ export function AppShell() {
     if (prevLength === 0 && currentLength > 0) {
       setShowUpload(false);
 
-      // Sequence: gallery slides in first, then tools
-      const galleryTimer = setTimeout(() => setShowGallery(true), 150);
-      const toolsTimer = setTimeout(() => setShowTools(true), 350);
+      // Sequence: top bar first, tools 500ms later, gallery 500ms after that
+      const topBarTimer = setTimeout(() => setShowTopBar(true), 150);
+      const toolsTimer = setTimeout(() => setShowTools(true), 650);
+      const galleryTimer = setTimeout(() => setShowGallery(true), 1150);
 
       prevImagesLengthRef.current = currentLength;
 
       return () => {
-        clearTimeout(galleryTimer);
+        clearTimeout(topBarTimer);
         clearTimeout(toolsTimer);
+        clearTimeout(galleryTimer);
       };
     }
 
     // All images removed - show upload, hide panels
     if (currentLength === 0) {
       setShowUpload(true);
+      setShowTopBar(false);
       setShowGallery(false);
       setShowTools(false);
     }
@@ -174,6 +183,55 @@ export function AppShell() {
 
   const handleRedo = useCallback(() => {
     canvasRef.current?.redo();
+  }, []);
+
+  /* ------------------------------------------------------------------ */
+  /* Text Memory                                                        */
+  /* ------------------------------------------------------------------ */
+
+  const handleTextCommit = useCallback((text: string) => {
+    if (!text.trim()) return;
+
+    const newMemory: TextMemory = {
+      id: textIdCounter.current++,
+      text,
+      fontSize: settings.fontSize,
+      fontWeight: settings.fontWeight,
+      textColor: settings.textColor,
+    };
+
+    setRecentTexts((prev) => {
+      // Add to front, keep max 3, avoid duplicates
+      const updated = [newMemory, ...prev.filter((t) => t.text !== text)];
+      return updated.slice(0, 3);
+    });
+  }, [settings.fontSize, settings.fontWeight, settings.textColor]);
+
+  // Listen for text-committed events from canvas
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ text: string }>) => {
+      handleTextCommit(e.detail.text);
+    };
+
+    window.addEventListener("text-committed", handler as EventListener);
+    return () => {
+      window.removeEventListener("text-committed", handler as EventListener);
+    };
+  }, [handleTextCommit]);
+
+  const handleSelectRecentText = useCallback((memory: TextMemory) => {
+    // Apply the stored settings
+    setSettings((prev) => ({
+      ...prev,
+      fontSize: memory.fontSize,
+      fontWeight: memory.fontWeight,
+      textColor: memory.textColor,
+    }));
+
+    // Dispatch event to pre-fill the text input
+    window.dispatchEvent(
+      new CustomEvent("prefill-text", { detail: { text: memory.text } })
+    );
   }, []);
 
   /* ------------------------------------------------------------------ */
@@ -417,31 +475,37 @@ export function AppShell() {
           showKbdHints={showKbdHints}
           isCompareMode={isCompareMode}
           onCompareToggle={setIsCompareMode}
-          imageWidth={imageSize?.width}  // Only once!
-          imageHeight={imageSize?.height} // Only once!
-          originalSize={selectedImage?.size} // Add this for the savings chart!
+          imageWidth={imageSize?.width}
+          imageHeight={imageSize?.height}
+          originalSize={selectedImage?.size}
+          recentTexts={recentTexts}
+          onSelectRecentText={handleSelectRecentText}
         />
         )}
       </AnimatePresence>
 
       {/* Top Bar */}
-      <TopBar
-        zoom={zoom}
-        onZoomIn={() => setZoom((z) => Math.min(200, z + 25))}
-        onZoomOut={() => setZoom((z) => Math.max(25, z - 25))}
-        showUpload={showUpload}
-        showGallery={showGallery}
-        showTools={showTools}
-        showKbdHints={showKbdHints}
-        onToggleUpload={() => setShowUpload((v) => !v)}
-        onToggleGallery={() => setShowGallery((v) => !v)}
-        onToggleTools={() => setShowTools((v) => !v)}
-        hasSelectedImage={!!selectedImage}
-        exportFormat={exportFormat}
-        onExport={handleExport}
-        imageCount={images.length}
-        onDeleteAll={() => setShowDeleteAllDialog(true)}
-      />
+      <AnimatePresence>
+        {showTopBar && (
+          <TopBar
+            zoom={zoom}
+            onZoomIn={() => setZoom((z) => Math.min(200, z + 25))}
+            onZoomOut={() => setZoom((z) => Math.max(25, z - 25))}
+            showUpload={showUpload}
+            showGallery={showGallery}
+            showTools={showTools}
+            showKbdHints={showKbdHints}
+            onToggleUpload={() => setShowUpload((v) => !v)}
+            onToggleGallery={() => setShowGallery((v) => !v)}
+            onToggleTools={() => setShowTools((v) => !v)}
+            hasSelectedImage={!!selectedImage}
+            exportFormat={exportFormat}
+            onExport={handleExport}
+            imageCount={images.length}
+            onDeleteAll={() => setShowDeleteAllDialog(true)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area */}
       <ContextMenu>

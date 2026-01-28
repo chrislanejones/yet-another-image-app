@@ -21,7 +21,9 @@ import {
   ShapesSettings,
   BlurSettings,
   AISettings,
+  TextSettings,
 } from "./settings";
+import type { TextMemory } from "./settings/TextSettings";
 
 const user = {
   name: "Chris Lane Jones",
@@ -57,6 +59,8 @@ interface ToolsSidebarProps {
   showKbdHints: boolean;
   isCompareMode: boolean;
   onCompareToggle: (val: boolean) => void;
+  recentTexts: TextMemory[];
+  onSelectRecentText: (memory: TextMemory) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -85,6 +89,8 @@ export function ToolsSidebar({
   imageHeight,
   originalSize,
   showKbdHints,
+  recentTexts,
+  onSelectRecentText,
 }: ToolsSidebarProps) {
   const handleRotate = (deg: number) => {
     onSettingsChange({
@@ -184,6 +190,14 @@ export function ToolsSidebar({
     <BlurSettings
       settings={settings}
       onChange={onSettingsChange}
+    />
+  )}
+  {activeTool === "text" && (
+    <TextSettings
+      settings={settings}
+      onChange={onSettingsChange}
+      recentTexts={recentTexts}
+      onSelectRecentText={onSelectRecentText}
     />
   )}
   {activeTool === "ai" && (

@@ -1,5 +1,7 @@
 # Yet Another Image App
 
+![Yet Another Image App](public/Yet-Another-Image-App.webp)
+
 A powerful browser-based image annotation and editing tool built with React, TypeScript, and modern web technologies.
 
 ## Features
@@ -23,12 +25,13 @@ A powerful browser-based image annotation and editing tool built with React, Typ
 - Click and drag to select crop area with visual overlay
 - Dashed selection border with darkened outside area
 - Apply crop button to commit selection
+- Flip horizontal/vertical
 - Rotate left/right (90 degree increments)
 
 #### Brush / Paint
 - Freehand drawing with smooth strokes
 - Size presets (4, 8, 16, 32px) + fine-tune slider
-- Opacity control (25%, 50%, 75%, 100%) + slider
+- Opacity control (10-100%) + slider
 - 9 color palette with selection highlight
 - **Emoji stamping**: Select an emoji to stamp instead of paint
   - Compact emoji picker (no search bar, minimal UI)
@@ -36,12 +39,42 @@ A powerful browser-based image annotation and editing tool built with React, Typ
   - Size scales with brush size
   - Clear button to return to normal brush
 
+#### Text Tool
+- Click anywhere on the image to add text
+- **Multiple text boxes**: Add unlimited text annotations
+- Font size presets (16, 32, 48, 72px) + slider (8-72px)
+- Font weight toggle (Normal / Bold)
+- 9 color palette for text color
+- **Recent Texts Memory**: 3 memory marker buttons that save your recent text entries
+  - Click a marker to restore text content and styling
+  - Quickly reuse common annotations
+- Press Enter to commit, Shift+Enter for new line, Escape to cancel
+
 #### Arrow
 - Click and drag to draw arrows
 - **Single arrow** (one-headed) or **Double arrow** (two-headed)
 - Stroke width presets (2, 4, 6, 8px) + slider
 - 9 color palette
 - Styled toggle buttons for arrow style selection
+
+#### Shapes
+- **Rectangle**: Draw rectangular outlines
+- **Circle**: Perfect circles
+- **Hand-drawn Circle**: Natural, sketchy circle style with organic feel
+- **Line**: Straight lines
+- Stroke width control
+- 9 color palette
+
+#### Blur Tool
+- Brush-based blur for redacting sensitive information
+- Adjustable blur size (8-128px)
+- Blur intensity control (1-20px)
+- Real-time preview cursor showing brush size
+
+#### AI Tools
+- **Background Removal**: One-click AI-powered background removal
+- Powered by @imgly/background-removal
+- Progress indicator during processing
 
 ### Canvas
 - **Smooth zoom**: 25% - 200% with animated transitions
@@ -54,20 +87,23 @@ A powerful browser-based image annotation and editing tool built with React, Typ
 - Full history support for all drawing operations
 - Undo/redo buttons in sidebar
 - Context menu access
-- Keyboard shortcuts
+- Keyboard shortcuts (Alt+Z / Alt+X)
 
 ### Export
 - **Multiple formats**: JPEG, WebP, AVIF
 - Quality setting affects export compression
 - Format selector dropdown
 - Quick export from context menu
+- Copy to clipboard support
 
 ### UI/UX
 - **Dark theme** with custom color palette
-- Animated sidebar and top bar (Framer Motion spring physics)
+- **Animated panel entrance**: Top bar slides in first, then tools sidebar, then gallery (staggered 500ms intervals)
+- Animated sidebar and gallery (Framer Motion spring physics)
 - Keyboard hint badges (toggle with Alt+/)
 - Status bar showing image info, tool, and export format
 - Responsive layout with collapsible panels
+- Delete all images with confirmation dialog
 
 ## Keyboard Shortcuts
 
@@ -80,6 +116,7 @@ A powerful browser-based image annotation and editing tool built with React, Typ
 | `Alt + Z` | Undo |
 | `Alt + X` | Redo |
 | `Alt + E` | Export |
+| `Alt + D` | Delete all images |
 | `Alt + -` | Zoom out |
 | `Alt + =` | Zoom in |
 
@@ -92,10 +129,10 @@ On macOS, `Cmd` also works as a modifier.
 - **Vite 7** - Build tool with HMR
 - **Tailwind CSS 4** - Utility-first styling
 - **Framer Motion** - Smooth animations
-- **TanStack Router** - Client-side routing
 - **Radix UI** - Accessible UI primitives
 - **Lucide React** - Icon library
 - **emoji-mart** - Emoji picker
+- **@imgly/background-removal** - AI background removal
 
 ## Getting Started
 
@@ -111,9 +148,6 @@ pnpm build
 
 # Preview production build
 pnpm preview
-
-# Run tests
-pnpm test
 ```
 
 The development server runs on `http://localhost:5173`.
@@ -129,19 +163,30 @@ src/
 ├── features/
 │   ├── canvas/
 │   │   ├── AnnotationCanvas.tsx  # Main canvas component
-│   │   ├── useCanvasDrawing.ts   # Drawing logic (brush, arrow, crop, emoji)
+│   │   ├── useCanvasDrawing.ts   # Drawing logic
 │   │   ├── useCanvasHistory.ts   # Undo/redo stack
-│   │   └── drawArrow.ts          # Arrow rendering
+│   │   ├── drawArrow.ts          # Arrow rendering
+│   │   ├── drawShape.ts          # Shape rendering
+│   │   └── drawText.ts           # Text rendering
 │   ├── tools/
 │   │   ├── ToolsSidebar.tsx      # Tool panel container
 │   │   ├── ToolGrid.tsx          # Tool selection grid
 │   │   └── settings/             # Per-tool settings panels
+│   │       ├── BrushSettings.tsx
+│   │       ├── TextSettings.tsx
+│   │       ├── ArrowSettings.tsx
+│   │       ├── ShapesSettings.tsx
+│   │       ├── BlurSettings.tsx
+│   │       ├── CropSettings.tsx
+│   │       ├── ResizeSettings.tsx
+│   │       └── AISettings.tsx
 │   ├── upload/
 │   │   ├── UploadDialog.tsx      # Upload modal
-│   │   └── UploadDropZone.tsx    # Drag & drop zone
+│   │   └── useImageUpload.ts     # Upload logic
 │   └── gallery/
 │       ├── ImageGalleryBar.tsx   # Gallery container
-│       └── ImageThumbnail.tsx    # Thumbnail component
+│       ├── ImageThumbnail.tsx    # Thumbnail component
+│       └── useGalleryPagination.ts
 ├── components/
 │   ├── TopBar/               # Zoom controls & toggles
 │   ├── StatusBar/            # Bottom info bar
@@ -153,19 +198,6 @@ src/
 │   └── utils.ts              # Utility functions
 └── styles.css                # Global styles & theme variables
 ```
-
-## Recent Changes
-
-- Added crop tool with visual selection overlay
-- Implemented emoji stamping in brush tool
-- Added stroke width presets to arrow tool
-- Styled arrow style toggle buttons
-- Smooth canvas animation when sidebar opens
-- Compact emoji picker without search bar
-- Auto-show upload dialog when no images
-- Fixed zoom not applying to canvas
-- Fixed invalid hook call error
-- Added Tailwind CSS v4 Vite plugin
 
 ## License
 

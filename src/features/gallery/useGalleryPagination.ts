@@ -12,7 +12,9 @@ export function useGalleryPagination(
     if (!containerRef.current) return;
 
     const observer = new ResizeObserver((entries) => {
-      const width = entries[0].contentRect.width;
+      const entry = entries[0];
+      if (!entry) return;
+      const width = entry.contentRect.width;
       setPerPage(Math.max(1, Math.floor(width / thumbWidth)));
     });
 

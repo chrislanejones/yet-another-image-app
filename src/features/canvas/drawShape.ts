@@ -101,24 +101,34 @@ interface Point {
       
         // --- Draw complete path: tail + circle ---
         ctx.beginPath();
-      
+
         // Start at tail tip
-        ctx.moveTo(tailPoints[0].x, tailPoints[0].y);
-      
+        const tailStart = tailPoints[0];
+        if (tailStart) {
+          ctx.moveTo(tailStart.x, tailStart.y);
+        }
+
         // Draw tail with curves
         for (let i = 1; i < tailPoints.length; i++) {
-          ctx.lineTo(tailPoints[i].x, tailPoints[i].y);
+          const pt = tailPoints[i];
+          if (pt) ctx.lineTo(pt.x, pt.y);
         }
-      
+
         // Continue into main circle with quadratic curves
         for (let i = 1; i < pathPoints.length - 1; i++) {
-          const xc = (pathPoints[i].x + pathPoints[i + 1].x) / 2;
-          const yc = (pathPoints[i].y + pathPoints[i + 1].y) / 2;
-          ctx.quadraticCurveTo(pathPoints[i].x, pathPoints[i].y, xc, yc);
+          const pt = pathPoints[i];
+          const ptNext = pathPoints[i + 1];
+          if (pt && ptNext) {
+            const xc = (pt.x + ptNext.x) / 2;
+            const yc = (pt.y + ptNext.y) / 2;
+            ctx.quadraticCurveTo(pt.x, pt.y, xc, yc);
+          }
         }
-      
+
         const last = pathPoints[pathPoints.length - 1];
-        ctx.lineTo(last.x, last.y);
+        if (last) {
+          ctx.lineTo(last.x, last.y);
+        }
       
         ctx.stroke();
       

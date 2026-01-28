@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import type { ExportFormat } from "@/components/ui/select";
 import { formatLabels } from "@/components/ui/select";
+import { slideFromTop } from "@/lib/animations";
 import {
   Image,
   Upload,
@@ -73,13 +74,19 @@ export function TopBar({
 
   return (
     <motion.div
-      animate={{
-        paddingLeft: showTools ? 320 : 12, // sidebar + gap
-        paddingRight: 12,
-      }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      variants={slideFromTop}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
       className="fixed top-3 left-0 right-0 z-30 pointer-events-none"
     >
+      <motion.div
+        animate={{
+          paddingLeft: showTools ? 320 : 12, // sidebar + gap
+          paddingRight: 12,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      >
       {/* ✅ THIS RESTORES CLICKING */}
       <div className="pointer-events-auto">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center px-4 py-3 bg-theme-card/80 backdrop-blur-sm rounded-xl border border-theme-border">
@@ -177,6 +184,7 @@ export function TopBar({
           </div>
         </div>
       </div>
+      </motion.div>
     </motion.div>
   );
 }
