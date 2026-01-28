@@ -20,6 +20,7 @@ import {
   CropSettings,
   ShapesSettings,
   BlurSettings,
+  AISettings,
 } from "./settings";
 
 const user = {
@@ -34,30 +35,28 @@ const user = {
 
 interface ToolsSidebarProps {
   onClose: () => void;
-
   settings: ToolSettings;
-  onSettingsChange: (settings: ToolSettings) => void;
-
+  onSettingsChange: (s: ToolSettings) => void;
   activeTool: ToolType;
-  onToolChange: (tool: ToolType) => void;
-
+  onToolChange: (t: ToolType) => void;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-
   exportFormat: ExportFormat;
-  onExportFormatChange: (format: ExportFormat) => void;
+  onExportFormatChange: (f: ExportFormat) => void;
   onExport: () => void;
-
   hasSelectedImage: boolean;
-
-  onResize?: () => void;
-  onApplyCrop?: () => void;
-  imageWidth?: number;
-  imageHeight?: number;
-
+  onResize: () => void;
+  onApplyCrop: () => void;
+  onFlipHorizontal: () => void;
+  onFlipVertical: () => void;
+  imageWidth?: number | undefined;
+  imageHeight?: number | undefined;
+  originalSize?: number | undefined;
   showKbdHints: boolean;
+  isCompareMode: boolean;
+  onCompareToggle: (val: boolean) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -70,22 +69,21 @@ export function ToolsSidebar({
   onSettingsChange,
   activeTool,
   onToolChange,
-
   onUndo,
   onRedo,
   canUndo,
   canRedo,
-
   exportFormat,
   onExportFormatChange,
   onExport,
   hasSelectedImage,
-
   onResize,
   onApplyCrop,
+  onFlipHorizontal,
+  onFlipVertical,
   imageWidth,
   imageHeight,
-
+  originalSize,
   showKbdHints,
 }: ToolsSidebarProps) {
   const handleRotate = (deg: number) => {
@@ -144,19 +142,22 @@ export function ToolsSidebar({
      {/* Tool Panels */}
 <div className="flex-1 overflow-y-auto p-4 space-y-4">
   {activeTool === "compress" && (
-    <ResizeSettings
-      settings={settings}
-      onSettingsChange={onSettingsChange}
-      onResize={onResize}
-      imageWidth={imageWidth}
-      imageHeight={imageHeight}
-    />
+     <ResizeSettings
+     settings={settings}
+     onSettingsChange={onSettingsChange}
+     onResize={onResize}
+     imageWidth={imageWidth}
+     imageHeight={imageHeight}
+     originalSize={originalSize}
+   />
   )}
 
   {activeTool === "crop" && (
     <CropSettings
       onRotate={handleRotate}
       onApplyCrop={onApplyCrop}
+      onFlipHorizontal={onFlipHorizontal}
+      onFlipVertical={onFlipVertical}
     />
   )}
 
@@ -173,19 +174,31 @@ export function ToolsSidebar({
       onChange={onSettingsChange}
     />
   )}
-
   {activeTool === "shapes" && (
     <ShapesSettings
       settings={settings}
       onChange={onSettingsChange}
     />
   )}
-
   {activeTool === "blur" && (
     <BlurSettings
       settings={settings}
       onChange={onSettingsChange}
     />
+  )}
+  {activeTool === "ai" && (
+   <AISettings
+   settings={settings}
+   onApplyImage={(blob) => {
+     const url = URL.createObjectURL(blob);
+ 
+     window.dispatchEvent(
+       new CustomEvent("replace-active-image", {
+         detail: { blob, url },
+       }),
+     );
+   }}
+ />
   )}
 </div>
 
@@ -210,7 +223,12 @@ export function ToolsSidebar({
             text-sm
             font-medium
             bg-theme-primary
-            text-theme-primary-foreground
+            text-theme-secondary
+            hover:ring-2
+            hover:ring-theme-primary/50
+            hover:ring-offset-2
+            hover:ring-offset-theme-sidebar
+            transition-all
             disabled:opacity-50
             disabled:cursor-not-allowed
           "
@@ -245,7 +263,7 @@ export function ToolsSidebar({
             <Undo className="h-4 w-4" />
             Undo
             {showKbdHints && (
-              <kbd className="bg-theme-primary text-black text-xs px-1.5 rounded">
+              <kbd className="bg-theme-secondary text-theme-foreground text-xs px-1.5 rounded">
                 Alt Z
               </kbd>
             )}
@@ -273,7 +291,7 @@ export function ToolsSidebar({
             <Redo className="h-4 w-4" />
             Redo
             {showKbdHints && (
-              <kbd className="bg-theme-primary text-black text-xs px-1.5 rounded">
+              <kbd className="bg-theme-secondary text-theme-foreground text-xs px-1.5 rounded">
                 Alt X
               </kbd>
             )}

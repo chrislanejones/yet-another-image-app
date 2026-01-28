@@ -1,5 +1,16 @@
 import type { ImageData, ToolType } from "@/lib/types";
 
+export const TOOL_LABELS: Record<ToolType, string> = {
+  compress: "Resize & Compress",
+  crop: "Crop & Transform",
+  brush: "Brush & Stamp",
+  text: "Text",
+  arrow: "Arrow & Pointer",
+  ai: "AI Tools",
+  shapes: "Shapes",
+  blur: "Blur & Redact",
+};
+
 export function formatImageSize(bytes: number): string {
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
@@ -9,7 +20,7 @@ export function formatImageCount(count: number): string {
 }
 
 export function formatToolLabel(tool: ToolType): string {
-  return `Tool: ${tool}`;
+  return TOOL_LABELS[tool];
 }
 
 export function formatExportLabel(format: string): string {

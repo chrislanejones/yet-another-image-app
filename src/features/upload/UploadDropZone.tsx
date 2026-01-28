@@ -68,7 +68,7 @@ export function UploadDropZone({ onFiles }: Props) {
         <div className="flex gap-4 flex-wrap justify-center">
           <button
             onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium bg-theme-primary text-theme-primary-foreground"
+            className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium bg-theme-primary text-theme-secondary hover:ring-2 hover:ring-theme-primary/50 hover:ring-offset-2 hover:ring-offset-theme-background transition-all"
           >
             <FolderOpen className="h-5 w-5" />
             Browse Files

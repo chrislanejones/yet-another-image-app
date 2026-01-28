@@ -35,6 +35,10 @@ export function ArrowSettings({
 }) {
   return (
     <div className="space-y-6">
+      <h3 className="text-sm font-medium text-theme-foreground">
+        Arrow & Pointer
+      </h3>
+
      {/* Stroke width */}
 <div className="space-y-2">
   <div className="flex items-center justify-between">
@@ -119,11 +123,11 @@ export function ArrowSettings({
               rounded-lg
               text-sm
               font-medium
-              transition-colors
+              transition-all
               ${
                 settings.arrowStyle === "single"
-                  ? "bg-theme-primary text-theme-primary-foreground"
-                  : "bg-theme-accent text-theme-foreground hover:bg-theme-muted"
+                  ? "bg-theme-primary text-theme-secondary ring-2 ring-theme-primary/50"
+                  : "bg-theme-accent text-theme-foreground hover:ring-2 hover:ring-theme-accent/50"
               }
             `}
           >
@@ -144,11 +148,11 @@ export function ArrowSettings({
               rounded-lg
               text-sm
               font-medium
-              transition-colors
+              transition-all
               ${
                 settings.arrowStyle === "double"
-                  ? "bg-theme-primary text-theme-primary-foreground"
-                  : "bg-theme-accent text-theme-foreground hover:bg-theme-muted"
+                  ? "bg-theme-primary text-theme-secondary ring-2 ring-theme-primary/50"
+                  : "bg-theme-accent text-theme-foreground hover:ring-2 hover:ring-theme-accent/50"
               }
             `}
           >

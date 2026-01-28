@@ -7,7 +7,7 @@ import {
 } from "./formatters";
 
 interface StatusBarProps {
-  selectedImage?: ImageData;
+  selectedImage?: ImageData | undefined;
   imageCount: number;
   activeTool: ToolType;
   exportFormat: string;
@@ -45,10 +45,10 @@ export function StatusBar({
       {/* Center */}
       <div className="justify-self-center hidden md:flex items-center gap-1">
         <span>Hotkeys:</span>
-        <kbd className="px-1 py-0.5 rounded bg-theme-primary text-black">
+        <kbd className="px-1 py-0.5 rounded bg-theme-secondary text-theme-foreground">
           Alt + /
         </kbd>
-        <kbd className="px-1 py-0.5 rounded bg-theme-primary text-black">
+        <kbd className="px-1 py-0.5 rounded bg-theme-secondary text-theme-foreground">
           ⌘ + /
         </kbd>
       </div>

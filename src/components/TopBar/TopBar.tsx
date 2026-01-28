@@ -8,6 +8,7 @@ import {
   Download,
   ZoomIn,
   ZoomOut,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +26,8 @@ interface TopBarProps {
   hasSelectedImage: boolean;
   exportFormat: ExportFormat;
   onExport: () => void;
+  imageCount: number;
+  onDeleteAll: () => void;
 }
 
 export function TopBar({
@@ -41,6 +44,8 @@ export function TopBar({
   hasSelectedImage,
   exportFormat,
   onExport,
+  imageCount,
+  onDeleteAll,
 }: TopBarProps) {
   const toggleButtons = [
     {
@@ -93,7 +98,7 @@ export function TopBar({
                 {zoom}%
               </span>
               {showKbdHints && (
-                <kbd className="bg-theme-primary text-black text-[10px] px-1.5 py-0.5 mt-0.5 rounded">
+                <kbd className="bg-theme-secondary text-theme-foreground text-[10px] px-1.5 py-0.5 mt-0.5 rounded">
                   Alt − / +
                 </kbd>
               )}
@@ -114,16 +119,16 @@ export function TopBar({
               <button
                 key={key}
                 onClick={toggle}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-all ${
                   state
-                    ? "bg-theme-primary text-theme-primary-foreground"
-                    : "text-theme-muted-foreground hover:text-theme-foreground hover:bg-accent"
+                    ? "bg-theme-primary text-theme-secondary "
+                    : "text-theme-muted-foreground hover:text-theme-foreground hover:bg-theme-accent"
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 <span className="hidden sm:inline">{label}</span>
                 {showKbdHints && (
-                  <kbd className="hidden sm:inline bg-theme-primary text-black text-xs px-1.5 rounded">
+                  <kbd className="hidden sm:inline bg-theme-secondary text-theme-foreground text-xs px-1.5 rounded">
                     Alt {key}
                   </kbd>
                 )}
@@ -131,7 +136,7 @@ export function TopBar({
             ))}
           </div>
 
-          {/* Right — Export */}
+          {/* Right — Export & Delete All */}
           <div className="flex items-center gap-2 justify-self-end">
             <Button
               onClick={onExport}
@@ -147,6 +152,27 @@ export function TopBar({
               <span className="sm:hidden">
                 {formatLabels[exportFormat]}
               </span>
+              {showKbdHints && (
+                <kbd className="hidden sm:inline bg-theme-secondary text-theme-foreground text-xs px-1.5 rounded">
+                  Alt E
+                </kbd>
+              )}
+            </Button>
+
+            <Button
+              onClick={onDeleteAll}
+              disabled={imageCount === 0}
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Delete All</span>
+              {showKbdHints && (
+                <kbd className="hidden sm:inline bg-theme-secondary text-theme-foreground text-xs px-1.5 rounded">
+                  Alt D
+                </kbd>
+              )}
             </Button>
           </div>
         </div>

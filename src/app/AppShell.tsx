@@ -39,11 +39,11 @@ import {
   Undo,
   Redo,
   Download,
+  Clipboard,
   Trash2,
   ZoomIn,
   ZoomOut,
   RotateCcw,
-  Image as ImageIcon,
 } from "lucide-react";
 
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
@@ -105,14 +105,44 @@ export function AppShell() {
 
   const selectedImage = images[selectedIndex];
 
+  const [isCompareMode, setIsCompareMode] = useState(false);
+
+  // Track previous image count for detecting transitions
+  const prevImagesLengthRef = useRef(0);
+
   /* ------------------------------------------------------------------ */
-  /* Show upload when no images                                         */
+  /* Panel visibility based on image state                              */
   /* ------------------------------------------------------------------ */
 
   useEffect(() => {
-    if (images.length === 0) {
-      setShowUpload(true);
+    const prevLength = prevImagesLengthRef.current;
+    const currentLength = images.length;
+
+    // Images added when there were none - sequence panels in
+    if (prevLength === 0 && currentLength > 0) {
+      setShowUpload(false);
+
+      // Sequence: gallery slides in first, then tools
+      const galleryTimer = setTimeout(() => setShowGallery(true), 150);
+      const toolsTimer = setTimeout(() => setShowTools(true), 350);
+
+      prevImagesLengthRef.current = currentLength;
+
+      return () => {
+        clearTimeout(galleryTimer);
+        clearTimeout(toolsTimer);
+      };
     }
+
+    // All images removed - show upload, hide panels
+    if (currentLength === 0) {
+      setShowUpload(true);
+      setShowGallery(false);
+      setShowTools(false);
+    }
+
+    prevImagesLengthRef.current = currentLength;
+    return undefined;
   }, [images.length]);
 
   /* ------------------------------------------------------------------ */
@@ -146,20 +176,52 @@ export function AppShell() {
     canvasRef.current?.redo();
   }, []);
 
-  const handleHistoryChange = useCallback(
-    (u: boolean, r: boolean) => {
-      setCanUndo(u);
-      setCanRedo(r);
-    },
-    [],
-  );
-
   /* ------------------------------------------------------------------ */
   /* Crop                                                               */
   /* ------------------------------------------------------------------ */
 
   const handleApplyCrop = useCallback(() => {
     canvasRef.current?.applyCrop();
+  }, []);
+
+  const handleFlipHorizontal = useCallback(() => {
+    const canvas = canvasRef.current?.getCanvas();
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) return;
+
+    tempCtx.drawImage(canvas, 0, 0);
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(tempCanvas, -canvas.width, 0);
+    ctx.restore();
+  }, []);
+
+  const handleFlipVertical = useCallback(() => {
+    const canvas = canvasRef.current?.getCanvas();
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) return;
+
+    tempCtx.drawImage(canvas, 0, 0);
+    ctx.save();
+    ctx.scale(1, -1);
+    ctx.drawImage(tempCanvas, 0, -canvas.height);
+    ctx.restore();
   }, []);
 
   /* ------------------------------------------------------------------ */
@@ -254,6 +316,35 @@ export function AppShell() {
     handleExportWithFormat(exportFormat);
   }, [handleExportWithFormat, exportFormat]);
 
+  const handleCopyToClipboard = useCallback(async () => {
+    const canvas = canvasRef.current?.getCanvas();
+    if (!canvas) {
+      console.error("No canvas found");
+      return;
+    }
+
+    try {
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => {
+          resolve(b);
+        }, "image/png");
+      });
+
+      if (!blob) {
+        console.error("Failed to create blob");
+        return;
+      }
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob }),
+      ]);
+
+      console.log("Image copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy image:", err);
+    }
+  }, []);
+
   /* ------------------------------------------------------------------ */
   /* Keyboard                                                           */
   /* ------------------------------------------------------------------ */
@@ -262,6 +353,7 @@ export function AppShell() {
     onUndo: handleUndo,
     onRedo: handleRedo,
     onExport: handleExport,
+    onDeleteAll: () => setShowDeleteAllDialog(true),
     setShowUpload,
     setShowGallery,
     setShowTools,
@@ -305,25 +397,30 @@ export function AppShell() {
       <AnimatePresence>
         {showTools && (
           <ToolsSidebar
-            onClose={() => setShowTools(false)}
-            settings={settings}
-            onSettingsChange={setSettings}
-            activeTool={activeTool}
-            onToolChange={setActiveTool}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            exportFormat={exportFormat}
-            onExportFormatChange={setExportFormat}
-            onExport={handleExport}
-            hasSelectedImage={!!selectedImage}
-            onResize={handleResize}
-            onApplyCrop={handleApplyCrop}
-            imageWidth={imageSize?.width}
-            imageHeight={imageSize?.height}
-            showKbdHints={showKbdHints}
-          />
+          onClose={() => setShowTools(false)}
+          settings={settings}
+          onSettingsChange={setSettings}
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          exportFormat={exportFormat}
+          onExportFormatChange={setExportFormat}
+          onExport={handleExport}
+          hasSelectedImage={!!selectedImage}
+          onResize={handleResize}
+          onApplyCrop={handleApplyCrop}
+          onFlipHorizontal={handleFlipHorizontal}
+          onFlipVertical={handleFlipVertical}
+          showKbdHints={showKbdHints}
+          isCompareMode={isCompareMode}
+          onCompareToggle={setIsCompareMode}
+          imageWidth={imageSize?.width}  // Only once!
+          imageHeight={imageSize?.height} // Only once!
+          originalSize={selectedImage?.size} // Add this for the savings chart!
+        />
         )}
       </AnimatePresence>
 
@@ -342,9 +439,11 @@ export function AppShell() {
         hasSelectedImage={!!selectedImage}
         exportFormat={exportFormat}
         onExport={handleExport}
+        imageCount={images.length}
+        onDeleteAll={() => setShowDeleteAllDialog(true)}
       />
 
-      {/* Canvas + Context Menu */}
+      {/* Main Content Area */}
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <motion.main
@@ -352,94 +451,115 @@ export function AppShell() {
               marginLeft: showTools ? 320 : 0,
             }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="flex-1 flex items-center justify-center p-4 overflow-auto"
+            className="flex-1 relative overflow-hidden flex items-center justify-center p-8 outline-none"
           >
             {selectedImage ? (
               <AnnotationCanvas
+                key={selectedImage.id}
                 ref={canvasRef}
                 image={selectedImage}
                 tool={activeTool}
                 settings={settings}
                 zoom={zoom}
-                onHistoryChange={handleHistoryChange}
+                onHistoryChange={(u, r) => {
+                  setCanUndo(u);
+                  setCanRedo(r);
+                }}
               />
             ) : (
-              <div className="text-center">
-                <ImageIcon className="h-24 w-24 mx-auto mb-4 text-theme-muted-foreground" />
-                <h2 className="text-xl font-semibold mb-2">
-                  No image selected
-                </h2>
-                <p className="text-theme-muted-foreground mb-4">
-                  Upload an image or select one from the gallery
-                </p>
+              <div className="text-center space-y-4">
+                <p className="text-theme-muted-foreground">No image selected</p>
+                <button
+                  onClick={() => setShowUpload(true)}
+                  className="px-4 py-2 bg-theme-primary text-theme-secondary rounded-md hover:ring-2 hover:ring-theme-primary/50 hover:ring-offset-2 hover:ring-offset-theme-background transition-all"
+                >
+                  Open Image
+                </button>
               </div>
             )}
           </motion.main>
         </ContextMenuTrigger>
 
-        <ContextMenuContent className="w-56">
-          <ContextMenuItem onClick={handleUndo} disabled={!canUndo}>
-            <Undo className="h-4 w-4" />
-            Undo
-            <ContextMenuShortcut>Alt Z</ContextMenuShortcut>
-          </ContextMenuItem>
-
-          <ContextMenuItem onClick={handleRedo} disabled={!canRedo}>
-            <Redo className="h-4 w-4" />
-            Redo
-            <ContextMenuShortcut>Alt X</ContextMenuShortcut>
+        <ContextMenuContent className="w-64">
+          <ContextMenuItem
+            onClick={handleCopyToClipboard}
+            disabled={!selectedImage}
+          >
+            <Clipboard className="mr-2 h-4 w-4" />
+            Copy to Clipboard
+            <ContextMenuShortcut>Ctrl+C</ContextMenuShortcut>
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem
-            onClick={() => setZoom((z) => Math.max(25, z - 25))}
-            disabled={zoom <= 25}
+            disabled={!canUndo}
+            onSelect={() => canvasRef.current?.undo()}
           >
-            <ZoomOut className="h-4 w-4" />
-            Zoom Out
-            <ContextMenuShortcut>Alt −</ContextMenuShortcut>
+            <Undo className="mr-2 h-4 w-4" />
+            Undo
+            <ContextMenuShortcut>Alt+Z</ContextMenuShortcut>
           </ContextMenuItem>
 
           <ContextMenuItem
-            onClick={() => setZoom((z) => Math.min(200, z + 25))}
-            disabled={zoom >= 200}
+            disabled={!canRedo}
+            onSelect={() => canvasRef.current?.redo()}
           >
-            <ZoomIn className="h-4 w-4" />
-            Zoom In
-            <ContextMenuShortcut>Alt +</ContextMenuShortcut>
+            <Redo className="mr-2 h-4 w-4" />
+            Redo
+            <ContextMenuShortcut>Alt+X</ContextMenuShortcut>
           </ContextMenuItem>
 
-          <ContextMenuItem onClick={() => setZoom(100)}>
-            <RotateCcw className="h-4 w-4" />
+          <ContextMenuSeparator />
+
+          <ContextMenuItem
+            onSelect={() => setZoom((z) => Math.max(25, z - 25))}
+            disabled={zoom <= 25}
+          >
+            <ZoomOut className="mr-2 h-4 w-4" />
+            Zoom Out
+            <ContextMenuShortcut>Alt+−</ContextMenuShortcut>
+          </ContextMenuItem>
+
+          <ContextMenuItem
+            onSelect={() => setZoom((z) => Math.min(200, z + 25))}
+            disabled={zoom >= 200}
+          >
+            <ZoomIn className="mr-2 h-4 w-4" />
+            Zoom In
+            <ContextMenuShortcut>Alt++</ContextMenuShortcut>
+          </ContextMenuItem>
+
+          <ContextMenuItem onSelect={() => setZoom(100)}>
+            <RotateCcw className="mr-2 h-4 w-4" />
             Reset Zoom
           </ContextMenuItem>
 
           <ContextMenuSeparator />
 
           <ContextMenuItem
-            onClick={() => handleExportWithFormat("jpeg")}
+            onSelect={() => handleExportWithFormat("jpeg")}
             disabled={!selectedImage}
           >
-            <Download className="h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
             Export JPEG
             <ContextMenuShortcut>.jpg</ContextMenuShortcut>
           </ContextMenuItem>
 
           <ContextMenuItem
-            onClick={() => handleExportWithFormat("webp")}
+            onSelect={() => handleExportWithFormat("webp")}
             disabled={!selectedImage}
           >
-            <Download className="h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
             Export WebP
             <ContextMenuShortcut>.webp</ContextMenuShortcut>
           </ContextMenuItem>
 
           <ContextMenuItem
-            onClick={() => handleExportWithFormat("avif")}
+            onSelect={() => handleExportWithFormat("avif")}
             disabled={!selectedImage}
           >
-            <Download className="h-4 w-4" />
+            <Download className="mr-2 h-4 w-4" />
             Export AVIF
             <ContextMenuShortcut>.avif</ContextMenuShortcut>
           </ContextMenuItem>
@@ -447,12 +567,13 @@ export function AppShell() {
           <ContextMenuSeparator />
 
           <ContextMenuItem
-            onClick={() => setShowDeleteAllDialog(true)}
+            onSelect={() => setShowDeleteAllDialog(true)}
             variant="destructive"
             disabled={images.length === 0}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="mr-2 h-4 w-4" />
             Delete All
+            <ContextMenuShortcut>Alt+D</ContextMenuShortcut>
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>

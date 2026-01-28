@@ -4,6 +4,7 @@ interface KeyboardShortcutOptions {
   onUndo: () => void;
   onRedo: () => void;
   onExport: () => void;
+  onDeleteAll: () => void;
   setShowUpload: React.Dispatch<React.SetStateAction<boolean>>;
   setShowGallery: React.Dispatch<React.SetStateAction<boolean>>;
   setShowTools: React.Dispatch<React.SetStateAction<boolean>>;
@@ -15,6 +16,7 @@ export function useKeyboardShortcuts({
   onUndo,
   onRedo,
   onExport,
+  onDeleteAll,
   setShowUpload,
   setShowGallery,
   setShowTools,
@@ -62,6 +64,10 @@ export function useKeyboardShortcuts({
           e.preventDefault();
           onExport();
           break;
+        case "d":
+          e.preventDefault();
+          onDeleteAll();
+          break;
         case "-":
           setZoom((z) => Math.max(25, z - 25));
           break;
@@ -78,6 +84,7 @@ export function useKeyboardShortcuts({
     onUndo,
     onRedo,
     onExport,
+    onDeleteAll,
     setShowUpload,
     setShowGallery,
     setShowTools,

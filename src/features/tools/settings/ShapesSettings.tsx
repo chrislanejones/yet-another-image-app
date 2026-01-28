@@ -24,7 +24,7 @@ export function ShapesSettings({
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium text-theme-foreground">
-        Shape
+        Shapes
       </h3>
 
       {/* Shape picker */}
@@ -53,8 +53,8 @@ export function ShapesSettings({
                 transition-all
                 ${
                   active
-                    ? "bg-theme-primary text-theme-primary-foreground shadow-sm"
-                    : "bg-theme-accent text-theme-foreground hover:bg-theme-muted"
+                    ? "bg-theme-primary text-theme-secondary ring-2 ring-theme-primary/50"
+                    : "bg-theme-accent text-theme-foreground hover:ring-2 hover:ring-theme-accent/50"
                 }
               `}
             >

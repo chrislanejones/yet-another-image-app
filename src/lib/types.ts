@@ -16,8 +16,8 @@ export interface ToolSettings {
   brushOpacity: number;
   brushColor: string;
 
-    // ✅ emoji stamp
-  emoji?: string;
+    // emoji stamp
+  emoji?: string | undefined;
 
   fontSize: number;
   fontWeight: "normal" | "bold";
@@ -30,7 +30,7 @@ export interface ToolSettings {
   // ✅ Crop / Rotate
   rotation: number; // degrees
 
-  shape?: "rect" | "circle" | "handCircle" | "line";
+  shape?: "rect" | "circle" | "handCircle" | "line" | undefined;
 
   // ✅ Blur
   blurSize: number;
