@@ -1,7 +1,5 @@
-// tsconfig.json
 {
   "compilerOptions": {
-    // Language & emit
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -9,8 +7,6 @@
     "verbatimModuleSyntax": true,
     "noEmit": true,
     "skipLibCheck": true,
-
-    // Strictness
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -18,17 +14,13 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
-    // "noUncheckedSideEffectImports": true, // TS 5.8+ only → comment out for now
-
-    // JSX
     "jsx": "react-jsx",
-
-    // Path mapping
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    }
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client"]
   },
-  "include": ["src", "vite.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src"]
 }

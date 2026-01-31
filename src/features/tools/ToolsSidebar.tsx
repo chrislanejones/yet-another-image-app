@@ -1,16 +1,26 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  X,
-  Download,
-  Undo,
-  Redo,
-  Wrench,
-} from "lucide-react";
+import { X, Download, Undo, Redo, Wrench, LogOut, User, Settings } from "lucide-react";
 
 import { slideFromLeft } from "@/lib/animations";
 import type { ToolSettings, ToolType } from "@/lib/types";
 import type { ExportFormat } from "@/components/ui/select";
 import { Select } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { ToolGrid } from "./ToolGrid";
 import {
@@ -24,12 +34,8 @@ import {
   TextSettings,
 } from "./settings";
 import type { TextMemory } from "./settings/TextSettings";
-
-const user = {
-  name: "Chris Lane Jones",
-  email: "chris@example.com",
-  avatar: "https://api.dicebear.com/9.x/miniavs/svg?seed=Jack",
-};
+import { LoginButton } from "./LoginButton";
+import { useClerk, useUser } from "@clerk/clerk-react";
 
 /* ------------------------------------------------------------------ */
 /* Props                                                              */
@@ -99,6 +105,10 @@ export function ToolsSidebar({
     });
   };
 
+  const { openSignIn, signOut } = useClerk();
+  const { isSignedIn, user } = useUser();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
     <motion.div
       variants={slideFromLeft}
@@ -139,117 +149,101 @@ export function ToolsSidebar({
 
       {/* Tool Grid */}
       <div className="p-4 border-b border-theme-sidebar-border">
-        <ToolGrid
-          activeTool={activeTool}
-          onToolChange={onToolChange}
-        />
+        <ToolGrid activeTool={activeTool} onToolChange={onToolChange} />
       </div>
 
-     {/* Tool Panels */}
-<div className="flex-1 overflow-y-auto p-4 space-y-4">
-  {activeTool === "compress" && (
-     <ResizeSettings
-     settings={settings}
-     onSettingsChange={onSettingsChange}
-     onResize={onResize}
-     imageWidth={imageWidth}
-     imageHeight={imageHeight}
-     originalSize={originalSize}
-   />
-  )}
+      {/* Tool Panels */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {activeTool === "compress" && (
+          <ResizeSettings
+            settings={settings}
+            onSettingsChange={onSettingsChange}
+            onResize={onResize}
+            imageWidth={imageWidth}
+            imageHeight={imageHeight}
+            originalSize={originalSize}
+          />
+        )}
 
-  {activeTool === "crop" && (
-    <CropSettings
-      onRotate={handleRotate}
-      onApplyCrop={onApplyCrop}
-      onFlipHorizontal={onFlipHorizontal}
-      onFlipVertical={onFlipVertical}
-    />
-  )}
+        {activeTool === "crop" && (
+          <CropSettings
+            onRotate={handleRotate}
+            onApplyCrop={onApplyCrop}
+            onFlipHorizontal={onFlipHorizontal}
+            onFlipVertical={onFlipVertical}
+          />
+        )}
 
-  {activeTool === "brush" && (
-    <BrushSettings
-      settings={settings}
-      onChange={onSettingsChange}
-    />
-  )}
+        {activeTool === "brush" && (
+          <BrushSettings settings={settings} onChange={onSettingsChange} />
+        )}
 
-  {activeTool === "arrow" && (
-    <ArrowSettings
-      settings={settings}
-      onChange={onSettingsChange}
-    />
-  )}
-  {activeTool === "shapes" && (
-    <ShapesSettings
-      settings={settings}
-      onChange={onSettingsChange}
-    />
-  )}
-  {activeTool === "blur" && (
-    <BlurSettings
-      settings={settings}
-      onChange={onSettingsChange}
-    />
-  )}
-  {activeTool === "text" && (
-    <TextSettings
-      settings={settings}
-      onChange={onSettingsChange}
-      recentTexts={recentTexts}
-      onSelectRecentText={onSelectRecentText}
-    />
-  )}
-  {activeTool === "ai" && (
-   <AISettings
-   settings={settings}
-   onApplyImage={(blob) => {
-     const url = URL.createObjectURL(blob);
- 
-     window.dispatchEvent(
-       new CustomEvent("replace-active-image", {
-         detail: { blob, url },
-       }),
-     );
-   }}
- />
-  )}
-</div>
+        {activeTool === "arrow" && (
+          <ArrowSettings settings={settings} onChange={onSettingsChange} />
+        )}
+        {activeTool === "shapes" && (
+          <ShapesSettings settings={settings} onChange={onSettingsChange} />
+        )}
+        {activeTool === "blur" && (
+          <BlurSettings settings={settings} onChange={onSettingsChange} />
+        )}
+        {activeTool === "text" && (
+          <TextSettings
+            settings={settings}
+            onChange={onSettingsChange}
+            recentTexts={recentTexts}
+            onSelectRecentText={onSelectRecentText}
+          />
+        )}
+        {activeTool === "ai" && (
+          <AISettings
+            settings={settings}
+            onApplyImage={(blob) => {
+              const url = URL.createObjectURL(blob);
+
+              window.dispatchEvent(
+                new CustomEvent("replace-active-image", {
+                  detail: { blob, url },
+                }),
+              );
+            }}
+          />
+        )}
+      </div>
 
       {/* Export */}
-      <div className="p-4 border-t border-theme-sidebar-border space-y-2">
-        <Select
-          value={exportFormat}
-          onValueChange={onExportFormatChange}
-        />
+      <div className="p-4 border-t border-theme-sidebar-border">
+        <div className="flex gap-2">
+          <Select value={exportFormat} onValueChange={onExportFormatChange} className="flex-1" />
 
-        <button
-          onClick={onExport}
-          disabled={!hasSelectedImage}
-          className="
-            w-full
-            flex
-            items-center
-            justify-center
-            gap-2
-            py-2
-            rounded-lg
-            text-sm
-            font-medium
-            bg-theme-primary
-            text-theme-secondary
-            hover:ring-2
-            hover:ring-theme-primary/50
-            hover:ring-offset-2
-            hover:ring-offset-theme-sidebar
-            transition-all
-            disabled:opacity-50
-            disabled:cursor-not-allowed
-          "
-        >
-          <Download className="h-4 w-4" />
-          Export
-        </button>
+          <button
+            onClick={onExport}
+            disabled={!hasSelectedImage}
+            className="
+              flex-1
+              flex
+              items-center
+              justify-center
+              gap-2
+              py-2
+              rounded-lg
+              text-sm
+              font-medium
+              bg-theme-primary
+              text-theme-secondary
+              hover:ring-2
+              hover:ring-theme-primary/50
+              hover:ring-offset-2
+              hover:ring-offset-theme-sidebar
+              transition-all
+              disabled:opacity-50
+              disabled:cursor-not-allowed
+            "
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+        </div>
       </div>
 
       {/* Undo / Redo — GLOBAL */}
@@ -313,23 +307,74 @@ export function ToolsSidebar({
         </div>
       </div>
       {/* User Section */}
-<div className="p-2 border-t border-theme-sidebar-border">
-  <div className="flex items-center gap-3">
-    <img
-      src={user.avatar}
-      alt={user.name}
-      className="h-10 w-10 rounded-full bg-theme-accent"
-    />
-    <div className="min-w-0 flex-1">
-      <div className="truncate text-sm font-medium text-theme-sidebar-foreground">
-        {user.name}
+      <div className="p-2 border-t border-theme-sidebar-border">
+        {isSignedIn && user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-theme-sidebar-accent transition-colors">
+                {user.imageUrl ? (
+                  <img
+                    src={user.imageUrl}
+                    alt={user.fullName ?? "User"}
+                    className="h-10 w-10 rounded-full bg-theme-accent"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-full bg-theme-accent flex items-center justify-center">
+                    <User className="h-5 w-5 text-theme-muted-foreground" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="truncate text-sm font-medium text-theme-sidebar-foreground">
+                    {user.fullName ?? "User"}
+                  </div>
+                  <div className="truncate text-xs text-theme-muted-foreground">
+                    {user.primaryEmailAddress?.emailAddress}
+                  </div>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setSettingsOpen(true)}
+                className="cursor-pointer"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => signOut()}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <LoginButton onClick={() => openSignIn()} />
+        )}
       </div>
-      <div className="truncate text-xs text-theme-muted-foreground">
-        {user.email}
-      </div>
-    </div>
-  </div>
-</div>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Settings</DialogTitle>
+            <DialogDescription>
+              Configure your preferences and account settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {/* Settings content goes here */}
+            <p className="text-sm text-theme-muted-foreground">
+              Settings options coming soon.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
